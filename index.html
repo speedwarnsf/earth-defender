@@ -2031,17 +2031,22 @@
                 const canvasAspect = canvas.width / canvas.height;
                 const imgAspect = backgroundImg.width / backgroundImg.height;
                 let width, height, x, y;
+                
+                // Use COVER logic to fill entire screen edge-to-edge
                 if (canvasAspect > imgAspect) {
-                    height = canvas.height;
-                    width = height * imgAspect;
-                    y = 0;
-                    x = (canvas.width - width) / 2;
-                } else {
+                    // Canvas is wider - fit to width, overflow height
                     width = canvas.width;
                     height = width / imgAspect;
                     x = 0;
                     y = (canvas.height - height) / 2;
+                } else {
+                    // Canvas is taller - fit to height, overflow width
+                    height = canvas.height;
+                    width = height * imgAspect;
+                    y = 0;
+                    x = (canvas.width - width) / 2;
                 }
+                
                 playAreaBounds = {
                     left: x + 20,
                     top: y + 20,
@@ -2503,8 +2508,8 @@
                     const spawnAngle = Math.random() * Math.PI * 2;
                     
                     // Spawn OUTSIDE visible area so they fly in from edges
-                    const bgWidth = playAreaBounds.right - playAreaBounds.left;
-                    const bgHeight = playAreaBounds.bottom - playAreaBounds.top;
+                    const bgWidth = (playAreaBounds && playAreaBounds.right) ? playAreaBounds.right - playAreaBounds.left : canvas.width;
+                    const bgHeight = (playAreaBounds && playAreaBounds.bottom) ? playAreaBounds.bottom - playAreaBounds.top : canvas.height;
                     const spawnDistance = Math.max(bgWidth, bgHeight) * 0.75;
                     
                     const startX = visualEarthX + Math.cos(spawnAngle) * spawnDistance;
