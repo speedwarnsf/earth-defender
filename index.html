@@ -2353,17 +2353,23 @@
                 const canvasAspect = canvas.width / canvas.height;
                 const imgAspect = backgroundImg.width / backgroundImg.height;
                 let drawWidth, drawHeight, offsetX, offsetY;
+                
+                // Use COVER logic - fill entire screen edge-to-edge
                 if (canvasAspect > imgAspect) {
-                    drawHeight = canvas.height;
-                    drawWidth = drawHeight * imgAspect;
-                    offsetY = 0;
-                    offsetX = (canvas.width - drawWidth) / 2;
-                } else {
+                    // Canvas wider than image - fit to width, crop top/bottom
                     drawWidth = canvas.width;
                     drawHeight = drawWidth / imgAspect;
                     offsetX = 0;
                     offsetY = (canvas.height - drawHeight) / 2;
+                } else {
+                    // Canvas taller than image - fit to height, crop left/right
+                    drawHeight = canvas.height;
+                    drawWidth = drawHeight * imgAspect;
+                    offsetY = 0;
+                    offsetX = (canvas.width - drawWidth) / 2;
                 }
+                
+                // Earth is at center horizontally, 48% down vertically in the source image
                 cachedEarthPosition = {
                     x: offsetX,
                     y: offsetY,
