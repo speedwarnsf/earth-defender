@@ -1,3 +1,8 @@
+Of course. My apologies for getting cut off.
+
+Here is the complete and updated `index.html` file with all the bug fixes we discussed. This version corrects the boss orientation for each unique sprite and ensures that temporary upgrades are properly cleared between waves. All original functionality is preserved.
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -751,7 +756,7 @@
 <body>
     <div id="audioControls" style="display: flex;">
         <button class="audio-btn" id="muteBtn" onclick="toggleAudio()" title="Toggle Sound">
-            🔊
+            矧
         </button>
     </div>
 
@@ -791,7 +796,7 @@
     <div id="comboCounter"></div>
 
     <button id="missileButton" onclick="if(Game) Game.launchMissile()">
-        🚀<br>Fire
+        噫<br>Fire
     </button>
     
     <div id="menu">
@@ -809,7 +814,7 @@
         <div class="shop-header">
             <h2>Upgrades</h2>
             <div>
-                <span class="shop-balance" id="shopBalance">💰 100</span>
+                <span class="shop-balance" id="shopBalance">腸 100</span>
                 <button class="button button-secondary" style="margin-left: 16px;" onclick="if(Game) Game.closeShop()">Close</button>
             </div>
         </div>
@@ -1289,7 +1294,7 @@
             if (!audioManager) return;
             const muted = audioManager.toggleMute();
             const btn = document.getElementById('muteBtn');
-            btn.textContent = muted ? '🔇' : '🔊';
+            btn.textContent = muted ? '這' : '矧';
             btn.classList.toggle('muted', muted);
         }
         
@@ -1837,9 +1842,9 @@
             
             function isInPlayArea(x, y) {
                 if (!playAreaBounds || !playAreaBounds.left) return true;
-                return x >= playAreaBounds.left && 
-                       x <= playAreaBounds.right && 
-                       y >= playAreaBounds.top && 
+                return x >= playAreaBounds.left &&
+                       x <= playAreaBounds.right &&
+                       y >= playAreaBounds.top &&
                        y <= playAreaBounds.bottom;
             }
             
@@ -2474,6 +2479,7 @@
             }
 
             function spawnWave() {
+                gameState.temporaryUpgrades = []; // BUG FIX: Reset temporary upgrades each wave
                 waitingForNextWave = false;
                 currentWaveModifier = null;
                 if (isBossWave()) {
@@ -2495,17 +2501,25 @@
                     {name: "fighter", health: 2, speed: 0.8, coins: 15, sprites: ["assets/IMG_1505.jpg", "assets/IMG_1506.jpg"]},
                     {name: "tank", health: 4, speed: 0.5, coins: 25, sprites: ["assets/IMG_1508.jpg", "assets/IMG_1515.jpg", "assets/IMG_1517.jpg"]}
                 ];
-                const bossSprites = ["assets/IMG_1510.jpg", "assets/IMG_1511.jpg", "assets/IMG_1513.jpg"];
+                // BUG FIX: Define boss data with specific rotation offsets
+                const bossDataPool = [
+                    { path: "assets/IMG_1510.jpg", rotationOffset: Math.PI },       // Faces left
+                    { path: "assets/IMG_1511.jpg", rotationOffset: Math.PI },       // Faces left
+                    { path: "assets/IMG_1513.jpg", rotationOffset: Math.PI / 2 }    // Faces up
+                ];
                 const diffMult = CONFIG.DIFFICULTY[difficulty];
                 let composition = [];
                 let enemyCount = Math.round((5 + (wave - 1) * 2) * diffMult.enemyCount);
                 if (currentWaveModifier && currentWaveModifier.bossWave) {
+                    // BUG FIX: Select from the new boss data pool
+                    const selectedBoss = bossDataPool[Math.floor(Math.random() * bossDataPool.length)];
                     const bossData = {
                         name: 'boss',
                         health: (100 + wave * 15) * diffMult.enemyHealth,
                         speed: 0.3 * diffMult.enemySpeed,
                         coins: 200,
-                        spritePath: bossSprites[Math.floor(Math.random() * bossSprites.length)],
+                        spritePath: selectedBoss.path,
+                        rotationOffset: selectedBoss.rotationOffset, // Store the specific offset
                         canShoot: true,
                         shootRate: 2500
                     };
@@ -2871,7 +2885,7 @@
                     }
                     enemy.x += enemy.vx * speedFactor * 60 * dt;
                     enemy.y += enemy.vy * speedFactor * 60 * dt;
-                    if (enemy.x < -500 || enemy.x > canvas.width + 500 || 
+                    if (enemy.x < -500 || enemy.x > canvas.width + 500 ||
                         enemy.y < -500 || enemy.y > canvas.height + 500) {
                         enemy.health = 0;
                         return;
@@ -2882,8 +2896,8 @@
                     ctx.save();
                     ctx.translate(enemy.x, enemy.y);
                     const rotation = Math.atan2(visualEarthY - enemy.y, visualEarthX - enemy.x);
-                    // Different rotation offset for boss vs regular enemies based on sprite orientation
-                    const rotationOffset = enemy.name === 'boss' ? Math.PI * 1.5 : Math.PI / 2;
+                    // BUG FIX: Use the specific offset for each enemy, with a default for regular enemies
+                    const rotationOffset = enemy.rotationOffset || Math.PI / 2;
                     ctx.rotate(rotation + rotationOffset);
                     ctx.globalCompositeOperation = 'lighter';
                     if (enemyImage && enemyImage.complete && enemyImage.naturalHeight !== 0) {
@@ -3335,7 +3349,7 @@
                 if (livesEl) livesEl.textContent = lives;
                 if (coinsEl) coinsEl.textContent = coins;
                 if (missilesEl) missilesEl.textContent = missiles;
-                if (shopBalanceEl) shopBalanceEl.textContent = `💰 ${coins}`;
+                if (shopBalanceEl) shopBalanceEl.textContent = `腸 ${coins}`;
             }
             
             function showShop() {
@@ -3396,7 +3410,7 @@
                         <img src="${item.sprite}" class="item-sprite" alt="${item.name}" onerror="this.style.display='none'">
                         <div class="item-name">${item.name}</div>
                         <div class="item-desc">${item.desc}</div>
-                        <div class="item-price">${item.cost > 0 ? `💰 ${item.cost}` : "Free"}</div>
+                        <div class="item-price">${item.cost > 0 ? `腸 ${item.cost}` : "Free"}</div>
                         ${equipped ? '<div class="item-equipped-badge">Equipped</div>' : ""}
                     `;
                     if (!owned && item.cost > 0) {
@@ -3475,3 +3489,4 @@
 
 </body>
 </html>
+```
