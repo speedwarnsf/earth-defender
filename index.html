@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Earth Defender</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@500;600&display=swap');
@@ -65,14 +68,22 @@
             padding: 0;
             box-sizing: border-box;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            position: fixed;
+            overflow: hidden;
+            overscroll-behavior: none;
+            touch-action: none;
         }
 
         body {
             background: var(--color-bg-base);
-            overflow: hidden;
             font-family: var(--font-primary);
             color: var(--color-text-primary);
-            height: 100vh;
         }
 
         #gameCanvas {
@@ -80,6 +91,11 @@
             background: var(--color-bg-base);
             touch-action: none;
             image-rendering: pixelated;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
         }
 
         #titleImage {
@@ -102,9 +118,11 @@
             padding: var(--space-4);
             display: flex;
             justify-content: space-between;
+            align-items: flex-start;
             z-index: 100;
             pointer-events: none;
             clip-path: inset(0);
+            gap: var(--space-3);
         }
 
         .hud-group {
@@ -114,20 +132,24 @@
             border-radius: var(--radius-md);
             padding: var(--space-3) var(--space-4);
             display: flex;
-            gap: var(--space-5);
+            gap: var(--space-4);
             box-shadow: var(--shadow-md);
+            flex-shrink: 1;
+            min-width: 0;
         }
 
         .hud-stat {
             display: flex;
             flex-direction: column;
             gap: var(--space-1);
+            min-width: 0;
         }
 
         .hud-label {
             font-size: var(--text-xs);
             font-weight: 500;
             color: var(--color-text-tertiary);
+            white-space: nowrap;
         }
 
         .hud-value {
@@ -136,6 +158,7 @@
             font-weight: 600;
             color: var(--color-text-primary);
             font-variant-numeric: tabular-nums;
+            white-space: nowrap;
         }
 
         #comboCounter {
@@ -156,10 +179,9 @@
         #missileButton {
             width: 80px;
             height: 80px;
-            bottom: var(--space-4);
-            right: var(--space-4);
-            left: auto;
-            transform: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
             background: var(--color-danger);
             color: var(--color-text-primary);
             border: 2px solid rgba(239, 68, 68, 0.5);
@@ -170,7 +192,11 @@
             z-index: 100;
             transition: all 0.2s;
             box-shadow: var(--shadow-lg);
-            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
         }
 
         #missileButton:hover {
@@ -666,13 +692,13 @@
         @media (max-width: 768px) {
             .hud-group {
                 padding: var(--space-2) var(--space-3);
-                gap: var(--space-3);
+                gap: var(--space-2);
             }
             .hud-label {
                 font-size: 0.625rem;
             }
             .hud-value {
-                font-size: var(--text-base);
+                font-size: var(--text-sm);
             }
             .choice-cards {
                 grid-template-columns: 1fr;
@@ -806,7 +832,7 @@
         <h2>How to Play</h2>
         <p>
             <strong>Objective:</strong> Defend Earth by destroying all incoming enemy ships before they reach the planet.<br><br>
-            <strong>Controls:</strong> Your ship automatically orbits Earth. Use your mouse on desktop or swipe on mobile to aim your ship's cannon. Firing is automatic.<br><br>
+            <strong>Controls:</strong> Your ship automatically orbits Earth. Use your mouse on desktop or swipe UP/DOWN on mobile to aim your ship's cannon. Firing is automatic.<br><br>
             <strong>Missiles:</strong> Tap the missile button in the corner to launch a powerful, homing missile. You get more between waves.<br><br>
             <strong>Upgrades:</strong> After each wave, you get to choose one of three temporary upgrades. Use coins earned to buy permanent upgrades in the shop.
         </p>
@@ -1976,11 +2002,6 @@
                     hud.style.width = (playAreaBounds.right - playAreaBounds.left) + 'px';
                 }
                 
-                if (missileBtn) {
-                    missileBtn.style.right = (canvas.width - playAreaBounds.right + 16) + 'px';
-                    missileBtn.style.bottom = (canvas.height - playAreaBounds.bottom + 16) + 'px';
-                }
-                
                 if (titleImg) {
                     const bgWidth = playAreaBounds.right - playAreaBounds.left;
                     titleImg.style.maxWidth = Math.min(400, bgWidth * 0.8) + 'px';
@@ -1988,7 +2009,6 @@
                     titleImg.style.top = (playAreaBounds.top + 200) + 'px';
                 }
                 
-                // Position all menus within background bounds (except main menu which has its own CSS)
                 const bgCenterX = playAreaBounds.left + (playAreaBounds.right - playAreaBounds.left) / 2;
                 const bgCenterY = playAreaBounds.top + (playAreaBounds.bottom - playAreaBounds.top) / 2;
                 const bgWidth = playAreaBounds.right - playAreaBounds.left;
@@ -2077,28 +2097,33 @@
             
             function setupControls() {
                 let isDragging = false;
-                let touchStartX = 0;
+                let touchStartY = 0;
+                
                 canvas.addEventListener('mousemove', (e) => {
                     if (!gameRunning || isPaused) return;
                     const rect = canvas.getBoundingClientRect();
                     targetAngle = Math.atan2(e.clientY - rect.top - earthCenterY, e.clientX - rect.left - earthCenterX);
                 });
+                
                 canvas.addEventListener('touchstart', (e) => {
                     if (!gameRunning || isPaused) return;
                     e.preventDefault();
                     isDragging = true;
-                    touchStartX = e.touches[0].clientX;
+                    touchStartY = e.touches[0].clientY;
                 }, { passive: false });
+                
                 canvas.addEventListener('touchmove', (e) => {
                     if (!gameRunning || isPaused || !isDragging) return;
                     e.preventDefault();
-                    const touchX = e.touches[0].clientX;
-                    const delta = (touchX - touchStartX) / canvas.width;
-                    const sensitivity = Math.min(3, 2 * (window.devicePixelRatio || 1));
-                    targetAngle += delta * sensitivity;
-                    touchStartX = touchX;
+                    const touchY = e.touches[0].clientY;
+                    const deltaY = touchY - touchStartY;
+                    const sensitivity = 0.008;
+                    targetAngle -= deltaY * sensitivity;
+                    touchStartY = touchY;
                 }, { passive: false });
+                
                 canvas.addEventListener('touchend', () => isDragging = false);
+                
                 document.addEventListener('keydown', (e) => {
                     if (e.key === 'Escape') {
                         isPaused = !isPaused;
@@ -2134,7 +2159,7 @@
                 document.getElementById('menu').style.display = 'none';
                 document.getElementById('titleImage').style.display = 'none';
                 document.getElementById('hud').style.display = 'flex';
-                document.getElementById('missileButton').style.display = 'block';
+                document.getElementById('missileButton').style.display = 'flex';
                 gameRunning = true;
                 wave = 1;
                 lives = CONFIG.INITIAL_LIVES;
@@ -2210,9 +2235,8 @@
 
                 ctx.save();
                 
-                // Clip everything to the background image area with extra buffer for large sprites
                 if (playAreaBounds && playAreaBounds.left !== undefined) {
-                    const bufferSize = 200; // Extra space for large sprites like bosses
+                    const bufferSize = 200;
                     ctx.beginPath();
                     ctx.rect(
                         playAreaBounds.left - bufferSize,
@@ -2405,8 +2429,8 @@
                 ctx.translate(shipX, shipY);
                 ctx.rotate(shipAngle + Math.PI/2);
                 const size = CONFIG.SHIP_SIZE;
-                const img = lives < 3 ? playerShipDamagedImg : playerShipImg;
-                const loaded = lives < 3 ? playerShipDamagedLoaded : playerShipLoaded;
+                const img = lives < 2 ? playerShipDamagedImg : playerShipImg;
+                const loaded = lives < 2 ? playerShipDamagedLoaded : playerShipLoaded;
                 if (loaded) {
                     ctx.globalCompositeOperation = "lighter";
                     ctx.drawImage(img, -size/2, -size/2, size, size);
@@ -2463,7 +2487,6 @@
                     const speed = type.speed * (currentWaveModifier && currentWaveModifier.speedMultiplier ? currentWaveModifier.speedMultiplier : 1) * diffMult.enemySpeed;
                     const spawnAngle = Math.random() * Math.PI * 2;
                     
-                    // Spawn at edge of background image, not canvas
                     const bgWidth = playAreaBounds.right - playAreaBounds.left;
                     const bgHeight = playAreaBounds.bottom - playAreaBounds.top;
                     const spawnDistance = Math.min(bgWidth, bgHeight) * 0.55;
@@ -2819,7 +2842,6 @@
                     ctx.save();
                     ctx.translate(enemy.x, enemy.y);
                     const rotation = Math.atan2(visualEarthY - enemy.y, visualEarthX - enemy.x);
-                    // Different rotation offset for boss vs regular enemies based on sprite orientation
                     const rotationOffset = enemy.name === 'boss' ? Math.PI * 1.5 : Math.PI / 2;
                     ctx.rotate(rotation + rotationOffset);
                     ctx.globalCompositeOperation = 'lighter';
@@ -2886,18 +2908,15 @@
                     const p = particles[i];
                     if (!p) continue;
                     
-                    // Update particle physics
                     p.x += p.vx * dt * 60;
                     p.y += p.vy * dt * 60;
                     p.vy += 0.5;
                     p.lifetime -= dt;
                     
-                    // Check if dead
                     if (p.lifetime <= 0) {
                         particlePool.release(p);
                         particles.splice(i, 1);
                     } else {
-                        // Draw particle
                         const alpha = p.lifetime / p.maxLifetime;
                         ctx.globalAlpha = alpha;
                         ctx.fillStyle = p.color;
@@ -3183,7 +3202,6 @@
                     }
                 }
                 
-                // Remove all dead enemies at once
                 if (enemiesToRemove.length > 0) {
                     enemies = enemies.filter(e => !enemiesToRemove.includes(e));
                 }
@@ -3397,7 +3415,6 @@
 
         window.addEventListener('load', () => {
             Game = initializeGame();
-            // Position UI immediately to prevent jump
             setTimeout(() => {
                 if (Game && typeof Game.positionUIElements === 'function') {
                     Game.positionUIElements();
