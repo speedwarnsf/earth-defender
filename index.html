@@ -2120,8 +2120,8 @@
                     e.preventDefault();
                     const touchY = e.touches[0].clientY;
                     const deltaY = touchY - touchStartY;
-                    // Very sensitive - small movements = big rotation
-                    const sensitivity = 0.02;
+                    // Vertical swipe: UP = counter-clockwise, DOWN = clockwise
+                    const sensitivity = 0.008;
                     targetAngle -= deltaY * sensitivity;
                     touchStartY = touchY;
                 }, { passive: false });
