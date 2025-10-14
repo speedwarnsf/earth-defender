@@ -218,23 +218,28 @@
             transform: translate(-50%, -50%);
             text-align: center;
             z-index: 200;
+            width: 90%;
+            max-width: 500px;
         }
         
         #menu .button {
-            width: 120px;
-            padding: 8px 12px;
-            font-size: 14px;
-            margin: 4px;
+            width: 180px;
+            padding: 12px 16px;
+            font-size: 16px;
+            margin: 6px;
         }
         
         #menu .difficulty-buttons {
             margin-top: 12px;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
         }
         
         #menu .difficulty-buttons .button {
-            width: 80px;
-            padding: 6px 10px;
-            font-size: 12px;
+            width: 100px;
+            padding: 10px 12px;
+            font-size: 14px;
         }
 
         .button {
@@ -2134,10 +2139,10 @@
                     e.preventDefault();
                     const touchY = e.touches[0].clientY;
                     const deltaY = touchY - touchStartY;
-                    // Vertical swipe: UP motion (negative deltaY) = counter-clockwise (subtract)
-                    //                 DOWN motion (positive deltaY) = clockwise (add)
+                    // Vertical swipe: UP motion (negative deltaY) = clockwise (add)
+                    //                 DOWN motion (positive deltaY) = counter-clockwise (subtract)
                     const sensitivity = 0.008;
-                    targetAngle -= deltaY * sensitivity;
+                    targetAngle += deltaY * sensitivity;
                     touchStartY = touchY;
                 }, { passive: false });
                 canvas.addEventListener('touchend', () => isDragging = false);
@@ -2451,10 +2456,10 @@
                 ctx.rotate(shipAngle + Math.PI/2);
                 const size = CONFIG.SHIP_SIZE;
                 // Show damaged sprite only when at exactly 1 life remaining
-                const shouldShowDamaged = (lives === 1);
+                const shouldShowDamaged = (lives === 1 && playerShipDamagedLoaded);
                 const img = shouldShowDamaged ? playerShipDamagedImg : playerShipImg;
                 const loaded = shouldShowDamaged ? playerShipDamagedLoaded : playerShipLoaded;
-                if (loaded) {
+                if (loaded && img && img.complete) {
                     ctx.globalCompositeOperation = "lighter";
                     ctx.drawImage(img, -size/2, -size/2, size, size);
                     ctx.globalCompositeOperation = "source-over";
@@ -2516,14 +2521,18 @@
                     const speed = type.speed * (currentWaveModifier && currentWaveModifier.speedMultiplier ? currentWaveModifier.speedMultiplier : 1) * diffMult.enemySpeed;
                     const spawnAngle = Math.random() * Math.PI * 2;
                     
+                    // Ensure Earth position is valid
+                    const earthX = visualEarthX || canvas.width / 2;
+                    const earthY = visualEarthY || canvas.height / 2;
+                    
                     // Spawn well outside visible area
                     const bgWidth = (playAreaBounds && playAreaBounds.right) ? playAreaBounds.right - playAreaBounds.left : canvas.width;
                     const bgHeight = (playAreaBounds && playAreaBounds.bottom) ? playAreaBounds.bottom - playAreaBounds.top : canvas.height;
                     const spawnDistance = Math.max(bgWidth, bgHeight) * 0.75;
                     
-                    const startX = visualEarthX + Math.cos(spawnAngle) * spawnDistance;
-                    const startY = visualEarthY + Math.sin(spawnAngle) * spawnDistance;
-                    const angleToEarth = Math.atan2(visualEarthY - startY, visualEarthX - startX);
+                    const startX = earthX + Math.cos(spawnAngle) * spawnDistance;
+                    const startY = earthY + Math.sin(spawnAngle) * spawnDistance;
+                    const angleToEarth = Math.atan2(earthY - startY, earthX - startX);
                     const vx = Math.cos(angleToEarth) * speed;
                     const vy = Math.sin(angleToEarth) * speed;
                     const behaviors = ['straight', 'arc', 'strafe', 'zigzag'];
