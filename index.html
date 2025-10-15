@@ -200,6 +200,13 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            gap: var(--space-1);
+        }
+        
+        #missileButton::before {
+            content: '\1F680'; /* Rocket emoji */
+            font-size: 1.5rem;
+            line-height: 1;
         }
 
         #missileButton:hover {
@@ -279,13 +286,13 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 90%;
+            width: calc(100% - 2 * var(--space-4)); /* CSS FIX */
             max-width: 900px;
             max-height: 85vh;
             background: var(--color-bg-elevated);
             border: 1px solid var(--color-border);
             border-radius: var(--radius-lg);
-            padding: var(--space-6);
+            padding: var(--space-5); /* CSS FIX */
             display: none;
             flex-direction: column;
             z-index: 300;
@@ -299,6 +306,8 @@
             margin-bottom: var(--space-5);
             padding-bottom: var(--space-4);
             border-bottom: 1px solid var(--color-border);
+            flex-wrap: wrap; /* CSS FIX */
+            gap: var(--space-3);
         }
 
         .shop-header h2 {
@@ -307,6 +316,13 @@
             font-weight: 600;
             letter-spacing: var(--tracking-tight);
         }
+        
+        .shop-header-right { /* CSS FIX */
+            display: flex;
+            align-items: center;
+            gap: var(--space-4);
+            margin-left: auto;
+        }
 
         .shop-balance {
             font-family: var(--font-mono);
@@ -314,6 +330,14 @@
             font-weight: 600;
             color: var(--color-warning);
             font-variant-numeric: tabular-nums;
+            display: flex; /* CSS FIX */
+            align-items: center;
+            gap: var(--space-2);
+        }
+        
+        .shop-balance::before { /* CSS FIX */
+            content: '\1F4B0'; /* Money Bag Emoji */
+            font-size: 1.2em;
         }
 
         .shop-tabs {
@@ -345,7 +369,7 @@
             overflow-y: auto;
             overflow-x: hidden;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); /* CSS FIX */
             gap: var(--space-4);
             scrollbar-width: none;
             -ms-overflow-style: none;
@@ -356,13 +380,13 @@
         }
 
         .item-card {
-            background: #000;
+            background: var(--color-bg-overlay);
             border: 1px solid var(--color-border);
             border-radius: var(--radius-md);
-            padding: var(--space-4);
+            padding: var(--space-3); /* CSS FIX */
             display: flex;
             flex-direction: column;
-            gap: var(--space-3);
+            gap: var(--space-2); /* CSS FIX */
             transition: all 0.2s;
             text-align: center;
         }
@@ -374,13 +398,13 @@
 
         .item-card.equipped {
             border-color: var(--color-success);
-            background: #000;
+            background: rgba(16, 185, 129, 0.05);
             box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
         }
 
         .item-sprite {
-            width: 120px;
-            height: 120px;
+            width: 100px; /* CSS FIX */
+            height: 100px; /* CSS FIX */
             margin: 0 auto;
             object-fit: contain;
             image-rendering: pixelated;
@@ -696,23 +720,7 @@
                 opacity: 0;
             }
         }
-
-        @media (max-width: 768px) {
-            .hud-group {
-                padding: var(--space-2) var(--space-3);
-                gap: var(--space-3);
-            }
-            .hud-label {
-                font-size: 0.625rem;
-            }
-            .hud-value {
-                font-size: var(--text-base);
-            }
-            .choice-cards {
-                grid-template-columns: 1fr;
-            }
-        }
-    
+        
         #audioControls {
             position: absolute;
             top: var(--space-4);
@@ -736,6 +744,10 @@
             font-size: var(--text-lg);
             transition: all 0.2s ease;
         }
+
+        .audio-btn::before { /* CSS FIX */
+            font-family: var(--font-primary);
+        }
         
         .audio-btn:hover {
             background: var(--color-bg-overlay);
@@ -746,13 +758,36 @@
             color: var(--color-danger);
             background: rgba(239, 68, 68, 0.1);
         }
+
+        @media (max-width: 768px) {
+            .hud-group {
+                padding: var(--space-2) var(--space-3);
+                gap: var(--space-3);
+            }
+            .hud-label {
+                font-size: 0.625rem;
+            }
+            .hud-value {
+                font-size: var(--text-base);
+            }
+            .choice-cards {
+                grid-template-columns: 1fr;
+            }
+            #shop {
+                padding: var(--space-4);
+            }
+            .shop-header h2 {
+                font-size: var(--text-xl);
+            }
+            .shop-balance {
+                font-size: var(--text-lg);
+            }
+        }
     </style>
 </head>
 <body>
     <div id="audioControls" style="display: flex;">
-        <button class="audio-btn" id="muteBtn" onclick="toggleAudio()" title="Toggle Sound">
-            矧
-        </button>
+        <button class="audio-btn" id="muteBtn" onclick="toggleAudio()" title="Toggle Sound"></button>
     </div>
 
     <canvas id="gameCanvas"></canvas>
@@ -790,9 +825,7 @@
 
     <div id="comboCounter"></div>
 
-    <button id="missileButton" onclick="if(Game) Game.launchMissile()">
-        噫<br>Fire
-    </button>
+    <button id="missileButton" onclick="if(Game) Game.launchMissile()">Fire</button>
     
     <div id="menu">
         <button class="button" onclick="if(Game) Game.startGame('normal')">Start</button>
@@ -808,9 +841,9 @@
     <div id="shop">
         <div class="shop-header">
             <h2>Upgrades</h2>
-            <div>
-                <span class="shop-balance" id="shopBalance">腸 100</span>
-                <button class="button button-secondary" style="margin-left: 16px;" onclick="if(Game) Game.closeShop()">Close</button>
+            <div class="shop-header-right">
+                <span class="shop-balance" id="shopBalance">100</span>
+                <button class="button button-secondary" onclick="if(Game) Game.closeShop()">Close</button>
             </div>
         </div>
         <div class="shop-tabs">
@@ -877,7 +910,7 @@
     <script>
         'use strict';
         
-        const GAME_VERSION = '1.0.2';
+        const GAME_VERSION = '1.0.3'; // Version bump
         const EARTH_COLLISION_RADIUS = 45;
         const EARTH_IMPACT_RADIUS = 35;
         const SHIELD_VISUAL_RADIUS = 50;
@@ -1018,7 +1051,6 @@
                 const newTrack = this.musicTracks[trackPath];
                 if (this.currentMusic === newTrack && !newTrack.paused) return;
                 
-                // Stop ALL tracks to prevent overlap
                 Object.values(this.musicTracks).forEach(track => {
                     if (track && track !== newTrack) {
                         track.pause();
@@ -1273,6 +1305,8 @@
             
             toggleMute() {
                 this.muted = !this.muted;
+                const btn = document.getElementById('muteBtn');
+                btn.classList.toggle('muted', this.muted);
                 if (this.currentMusic) this.currentMusic.volume = this.muted ? 0 : this.musicVolume;
                 return this.muted;
             }
@@ -1283,14 +1317,13 @@
         function initAudioSystem() {
             audioManager = new AudioManager();
             document.getElementById('audioControls').style.display = 'flex';
+            const btn = document.getElementById('muteBtn');
+            btn.classList.toggle('muted', audioManager.muted);
         }
         
         function toggleAudio() {
             if (!audioManager) return;
-            const muted = audioManager.toggleMute();
-            const btn = document.getElementById('muteBtn');
-            btn.textContent = muted ? '這' : '矧';
-            btn.classList.toggle('muted', muted);
+            audioManager.toggleMute();
         }
         
         window.addEventListener('load', () => {
@@ -1464,11 +1497,11 @@
             playerShipDamagedImg.onerror = () => console.warn('Damaged ship image failed to load');
             
             const bossProjectileImg1 = new Image();
-            bossProjectileImg1.src = 'assets/IMG_1441 2.jpg';
+            bossProjectileImg1.src = 'assets/IMG_1441_2.jpg';
             bossProjectileImg1.onerror = () => console.warn('Boss projectile 1 failed to load');
             
             const bossProjectileImg2 = new Image();
-            bossProjectileImg2.src = 'assets/IMG_1439 2.jpg';
+            bossProjectileImg2.src = 'assets/IMG_1439_2.jpg';
             bossProjectileImg2.onerror = () => console.warn('Boss projectile 2 failed to load');
             
             const enemyImagePaths = [
@@ -1563,24 +1596,24 @@
 
             const shopItems = {
                 weapons: [
-                    {id: "basic", name: "Basic Cannon", cost: 0, damage: 1, fireRate: 400, desc: "Standard issue.", sprite: "assets/IMG_1426 2.JPG"},
-                    {id: "spread", name: "Spread Shot", cost: 250, damage: 0.8, fireRate: 450, desc: "Fires 5 projectiles in a fan pattern.", pattern: "spread", sprite: "assets/IMG_1405 2.JPG"},
-                    {id: "piercing", name: "Rail Gun", cost: 500, damage: 5, fireRate: 1000, desc: "Instant beam that pierces all enemies.", beam: true, piercing: true, sprite: "assets/IMG_1408 2.JPG"},
-                    {id: "rapid", name: "Rapid Fire", cost: 800, damage: 0.5, fireRate: 100, desc: "Continuous stream of bullets.", rapid: true, sprite: "assets/IMG_1403 2.JPG"},
-                    {id: "burst", name: "Burst Cannon", cost: 1200, damage: 1.5, fireRate: 600, desc: "Fires 3-shot bursts.", burst: 3, sprite: "assets/IMG_1404 2.JPG"},
-                    {id: "plasma", name: "Plasma Wave", cost: 2000, damage: 3, fireRate: 800, desc: "Expanding energy wave hits multiple targets.", wave: true, sprite: "assets/IMG_1429 2.JPG"}
+                    {id: "basic", name: "Basic Cannon", cost: 0, damage: 1, fireRate: 400, desc: "Standard issue.", sprite: "assets/IMG_1426_2.jpg"},
+                    {id: "spread", name: "Spread Shot", cost: 250, damage: 0.8, fireRate: 450, desc: "Fires 5 projectiles in a fan pattern.", pattern: "spread", sprite: "assets/IMG_1405_2.jpg"},
+                    {id: "piercing", name: "Rail Gun", cost: 500, damage: 5, fireRate: 1000, desc: "Instant beam that pierces all enemies.", beam: true, piercing: true, sprite: "assets/IMG_1408_2.jpg"},
+                    {id: "rapid", name: "Rapid Fire", cost: 800, damage: 0.5, fireRate: 100, desc: "Continuous stream of bullets.", rapid: true, sprite: "assets/IMG_1403_2.jpg"},
+                    {id: "burst", name: "Burst Cannon", cost: 1200, damage: 1.5, fireRate: 600, desc: "Fires 3-shot bursts.", burst: 3, sprite: "assets/IMG_1404_2.jpg"},
+                    {id: "plasma", name: "Plasma Wave", cost: 2000, damage: 3, fireRate: 800, desc: "Expanding energy wave hits multiple targets.", wave: true, sprite: "assets/IMG_1429_2.jpg"}
                 ],
                 shields: [
-                    {id: "basic", name: "Energy Shield", cost: 300, health: 100, desc: "Absorbs 100 damage.", sprite: "assets/IMG_1424 2.JPG"},
-                    {id: "regen", name: "Regen Shield", cost: 700, health: 80, regen: 2, desc: "Regenerates 2 HP per second.", sprite: "assets/IMG_1423 2.JPG"},
-                    {id: "reflect", name: "Reflect Shield", cost: 1000, health: 100, reflect: 0.4, desc: "40% chance to destroy enemies on contact.", sprite: "assets/IMG_1421 2.JPG"},
-                    {id: "absorb", name: "Absorb Shield", cost: 1500, health: 150, absorb: true, desc: "Converts damage into coins.", sprite: "assets/IMG_1409 2.JPG"}
+                    {id: "basic", name: "Energy Shield", cost: 300, health: 100, desc: "Absorbs 100 damage.", sprite: "assets/IMG_1424_2.jpg"},
+                    {id: "regen", name: "Regen Shield", cost: 700, health: 80, regen: 2, desc: "Regenerates 2 HP per second.", sprite: "assets/IMG_1423_2.jpg"},
+                    {id: "reflect", name: "Reflect Shield", cost: 1000, health: 100, reflect: 0.4, desc: "40% chance to destroy enemies on contact.", sprite: "assets/IMG_1421_2.jpg"},
+                    {id: "absorb", name: "Absorb Shield", cost: 1500, health: 150, absorb: true, desc: "Converts damage into coins.", sprite: "assets/IMG_1409_2.jpg"}
                 ],
                 systems: [
-                    {id: "speed", name: "Thrusters", cost: 300, speedBoost: 1.5, desc: "50% faster ship rotation.", sprite: "assets/IMG_1422 2.JPG"},
-                    {id: "auto", name: "Auto-Targeter", cost: 600, autoTarget: true, desc: "Automatically aims at nearest enemy.", sprite: "assets/IMG_1416 2.JPG"},
-                    {id: "slowmo", name: "Time Dilation", cost: 900, slowmo: 0.6, desc: "Enemies move 40% slower.", sprite: "assets/IMG_1447 2.JPG"},
-                    {id: "multilock", name: "Multi-Lock", cost: 1500, multiTarget: 3, desc: "Missiles track 3 targets simultaneously.", sprite: "assets/IMG_1445 2.JPG"}
+                    {id: "speed", name: "Thrusters", cost: 300, speedBoost: 1.5, desc: "50% faster ship rotation.", sprite: "assets/IMG_1422_2.jpg"},
+                    {id: "auto", name: "Auto-Targeter", cost: 600, autoTarget: true, desc: "Automatically aims at nearest enemy.", sprite: "assets/IMG_1416_2.jpg"},
+                    {id: "slowmo", name: "Time Dilation", cost: 900, slowmo: 0.6, desc: "Enemies move 40% slower.", sprite: "assets/IMG_1447_2.jpg"},
+                    {id: "multilock", name: "Multi-Lock", cost: 1500, multiTarget: 3, desc: "Missiles track 3 targets simultaneously.", sprite: "assets/IMG_1445_2.jpg"}
                 ]
             };
             
@@ -1837,9 +1870,9 @@
             
             function isInPlayArea(x, y) {
                 if (!playAreaBounds || !playAreaBounds.left) return true;
-                return x >= playAreaBounds.left &&
-                       x <= playAreaBounds.right &&
-                       y >= playAreaBounds.top &&
+                return x >= playAreaBounds.left && 
+                       x <= playAreaBounds.right && 
+                       y >= playAreaBounds.top && 
                        y <= playAreaBounds.bottom;
             }
             
@@ -2033,7 +2066,6 @@
                     titleImg.style.top = (playAreaBounds.top + 200) + 'px';
                 }
                 
-                // Position all menus within background bounds (except main menu which has its own CSS)
                 const bgCenterX = playAreaBounds.left + (playAreaBounds.right - playAreaBounds.left) / 2;
                 const bgCenterY = playAreaBounds.top + (playAreaBounds.bottom - playAreaBounds.top) / 2;
                 const bgWidth = playAreaBounds.right - playAreaBounds.left;
@@ -2139,8 +2171,6 @@
                     e.preventDefault();
                     const touchY = e.touches[0].clientY;
                     const deltaY = touchY - touchStartY;
-                    // Vertical swipe: UP motion (negative deltaY) = clockwise (add)
-                    //                 DOWN motion (positive deltaY) = counter-clockwise (subtract)
                     const sensitivity = 0.008;
                     targetAngle += deltaY * sensitivity;
                     touchStartY = touchY;
@@ -2181,7 +2211,7 @@
                 document.getElementById('menu').style.display = 'none';
                 document.getElementById('titleImage').style.display = 'none';
                 document.getElementById('hud').style.display = 'flex';
-                document.getElementById('missileButton').style.display = 'block';
+                document.getElementById('missileButton').style.display = 'flex';
                 gameRunning = true;
                 wave = 1;
                 lives = CONFIG.INITIAL_LIVES;
@@ -2257,9 +2287,8 @@
 
                 ctx.save();
                 
-                // Clip everything to the background image area with extra buffer for large sprites
                 if (playAreaBounds && playAreaBounds.left !== undefined) {
-                    const bufferSize = 200; // Extra space for large sprites like bosses
+                    const bufferSize = 200;
                     ctx.beginPath();
                     ctx.rect(
                         playAreaBounds.left - bufferSize,
@@ -2354,7 +2383,7 @@
             }
 
             function isBossWave() {
-                return wave > 0 && wave % 3 === 0;
+                return wave > 0 && wave % 5 === 0; // Boss on wave 5, 10, etc.
             }
 
             let cachedEarthPosition = null;
@@ -2370,15 +2399,12 @@
                 const canvasAspect = canvas.width / canvas.height;
                 const imgAspect = backgroundImg.width / backgroundImg.height;
                 let drawWidth, drawHeight, offsetX, offsetY;
-                // COVER mode: fill entire canvas edge-to-edge, crop as needed
                 if (canvasAspect > imgAspect) {
-                    // Canvas wider than image - fit to width, crop top/bottom
                     drawWidth = canvas.width;
                     drawHeight = drawWidth / imgAspect;
                     offsetX = 0;
                     offsetY = (canvas.height - drawHeight) / 2;
                 } else {
-                    // Canvas taller than image - fit to height, crop left/right
                     drawHeight = canvas.height;
                     drawWidth = drawHeight * imgAspect;
                     offsetY = 0;
@@ -2455,16 +2481,16 @@
                 ctx.translate(shipX, shipY);
                 ctx.rotate(shipAngle + Math.PI/2);
                 const size = CONFIG.SHIP_SIZE;
-                // Show damaged sprite only when at exactly 1 life remaining
                 const shouldShowDamaged = (lives === 1 && playerShipDamagedLoaded);
                 const img = shouldShowDamaged ? playerShipDamagedImg : playerShipImg;
                 const loaded = shouldShowDamaged ? playerShipDamagedLoaded : playerShipLoaded;
-                if (loaded && img && img.complete) {
+                
+                // BLUE DOT FIX: Use a more robust check for loaded images
+                if (loaded && img.complete && img.naturalWidth !== 0) {
                     ctx.globalCompositeOperation = "lighter";
                     ctx.drawImage(img, -size/2, -size/2, size, size);
                     ctx.globalCompositeOperation = "source-over";
                 } else {
-                    // Fallback circle if image not loaded
                     ctx.fillStyle = '#22d3ee';
                     ctx.beginPath();
                     ctx.arc(0, 0, size/3, 0, 2*Math.PI);
@@ -2474,7 +2500,7 @@
             }
 
             function spawnWave() {
-                gameState.temporaryUpgrades = []; // BUG FIX: Reset temporary upgrades each wave
+                gameState.temporaryUpgrades = [];
                 waitingForNextWave = false;
                 currentWaveModifier = null;
                 if (isBossWave()) {
@@ -2496,17 +2522,15 @@
                     {name: "fighter", health: 2, speed: 0.8, coins: 15, sprites: ["assets/IMG_1505.jpg", "assets/IMG_1506.jpg"]},
                     {name: "tank", health: 4, speed: 0.5, coins: 25, sprites: ["assets/IMG_1508.jpg", "assets/IMG_1515.jpg", "assets/IMG_1517.jpg"]}
                 ];
-                // BUG FIX: Define boss data with specific rotation offsets
                 const bossDataPool = [
-                    { path: "assets/IMG_1510.jpg", rotationOffset: Math.PI },       // Faces left
-                    { path: "assets/IMG_1511.jpg", rotationOffset: Math.PI },       // Faces left
-                    { path: "assets/IMG_1513.jpg", rotationOffset: Math.PI / 2 }    // Faces up
+                    { path: "assets/IMG_1510.jpg", rotationOffset: Math.PI },
+                    { path: "assets/IMG_1511.jpg", rotationOffset: Math.PI },
+                    { path: "assets/IMG_1513.jpg", rotationOffset: Math.PI / 2 }
                 ];
                 const diffMult = CONFIG.DIFFICULTY[difficulty];
                 let composition = [];
                 let enemyCount = Math.round((5 + (wave - 1) * 2) * diffMult.enemyCount);
                 if (currentWaveModifier && currentWaveModifier.bossWave) {
-                    // BUG FIX: Select from the new boss data pool
                     const selectedBoss = bossDataPool[Math.floor(Math.random() * bossDataPool.length)];
                     const bossData = {
                         name: 'boss',
@@ -2514,7 +2538,7 @@
                         speed: 0.3 * diffMult.enemySpeed,
                         coins: 200,
                         spritePath: selectedBoss.path,
-                        rotationOffset: selectedBoss.rotationOffset, // Store the specific offset
+                        rotationOffset: selectedBoss.rotationOffset,
                         canShoot: true,
                         shootRate: 2500
                     };
@@ -2530,11 +2554,9 @@
                     const speed = type.speed * (currentWaveModifier && currentWaveModifier.speedMultiplier ? currentWaveModifier.speedMultiplier : 1) * diffMult.enemySpeed;
                     const spawnAngle = Math.random() * Math.PI * 2;
                     
-                    // Ensure Earth position is valid
                     const earthX = visualEarthX || canvas.width / 2;
                     const earthY = visualEarthY || canvas.height / 2;
                     
-                    // Spawn well outside visible area
                     const bgWidth = (playAreaBounds && playAreaBounds.right) ? playAreaBounds.right - playAreaBounds.left : canvas.width;
                     const bgHeight = (playAreaBounds && playAreaBounds.bottom) ? playAreaBounds.bottom - playAreaBounds.top : canvas.height;
                     const spawnDistance = Math.max(bgWidth, bgHeight) * 0.75;
@@ -2799,7 +2821,7 @@
                     ctx.translate(bp.x, bp.y);
                     ctx.rotate(bp.rotation);
                     const projImg = Math.random() > 0.5 ? bossProjectileImg1 : bossProjectileImg2;
-                    if (projImg.complete) {
+                    if (projImg.complete && projImg.naturalWidth !== 0) {
                         ctx.drawImage(projImg, -15, -15, 30, 30);
                     } else {
                         ctx.fillStyle = '#ff0000';
@@ -2831,124 +2853,123 @@
                 enemies.forEach(enemy => {
                     if (!enemy || typeof enemy.x !== 'number' || typeof enemy.y !== 'number') return;
                     try {
-                    enemy.behaviorTimer += dt;
-                    let speedFactor = 0.5 * slowmoMultiplier * (1 + 0.01 * (wave - 1));
-                    const angleToEarth = Math.atan2(visualEarthY - enemy.y, visualEarthX - enemy.x);
-                    if (enemy.name === 'boss') {
-                        enemy.vx = Math.cos(angleToEarth) * enemy.speed;
-                        enemy.vy = Math.sin(angleToEarth) * enemy.speed;
-                        if (enemy.shootTimer !== null && enemy.shootTimer !== undefined) {
-                            enemy.shootTimer += dt * 1000;
-                            if (enemy.shootTimer >= enemy.shootRate) {
-                                enemy.shootTimer = 0;
-                                const angle = angleToEarth + (Math.random() - 0.5) * 0.5;
-                                const bp = bossProjectilePool.get(
-                                    enemy.x,
-                                    enemy.y,
-                                    Math.cos(angle) * 2,
-                                    Math.sin(angle) * 2,
-                                    1
-                                );
-                                bossProjectiles.push(bp);
-                                if (audioManager) audioManager.playSFX('shoot');
+                        enemy.behaviorTimer += dt;
+                        let speedFactor = 0.5 * slowmoMultiplier * (1 + 0.01 * (wave - 1));
+                        const angleToEarth = Math.atan2(visualEarthY - enemy.y, visualEarthX - enemy.x);
+                        if (enemy.name === 'boss') {
+                            enemy.vx = Math.cos(angleToEarth) * enemy.speed;
+                            enemy.vy = Math.sin(angleToEarth) * enemy.speed;
+                            if (enemy.shootTimer !== null && enemy.shootTimer !== undefined) {
+                                enemy.shootTimer += dt * 1000;
+                                if (enemy.shootTimer >= enemy.shootRate) {
+                                    enemy.shootTimer = 0;
+                                    const angle = angleToEarth + (Math.random() - 0.5) * 0.5;
+                                    const bp = bossProjectilePool.get(
+                                        enemy.x,
+                                        enemy.y,
+                                        Math.cos(angle) * 2,
+                                        Math.sin(angle) * 2,
+                                        1
+                                    );
+                                    bossProjectiles.push(bp);
+                                    if (audioManager) audioManager.playSFX('shoot');
+                                }
                             }
-                        }
-                    } else {
-                        let baseVx = Math.cos(angleToEarth) * enemy.speed;
-                        let baseVy = Math.sin(angleToEarth) * enemy.speed;
-                        switch (enemy.behavior) {
-                            case 'arc':
-                                const arcOffset = Math.sin(enemy.behaviorTimer * 2) * 0.3;
-                                enemy.vx = baseVx + Math.cos(angleToEarth + Math.PI/2) * arcOffset;
-                                enemy.vy = baseVy + Math.sin(angleToEarth + Math.PI/2) * arcOffset;
-                                break;
-                            case 'strafe':
-                                const strafeOffset = Math.sin(enemy.behaviorTimer * 4) * 0.5;
-                                enemy.vx = baseVx + Math.cos(angleToEarth + Math.PI/2) * strafeOffset;
-                                enemy.vy = baseVy + Math.sin(angleToEarth + Math.PI/2) * strafeOffset;
-                                break;
-                            case 'zigzag':
-                                const zigOffset = Math.sin(enemy.behaviorTimer * 8) * 0.6;
-                                enemy.vx = baseVx + Math.cos(angleToEarth + Math.PI/2) * zigOffset;
-                                enemy.vy = baseVy + Math.sin(angleToEarth + Math.PI/2) * zigOffset;
-                                break;
-                            default:
-                                enemy.vx = baseVx;
-                                enemy.vy = baseVy;
-                                break;
-                        }
-                    }
-                    enemy.x += enemy.vx * speedFactor * 60 * dt;
-                    enemy.y += enemy.vy * speedFactor * 60 * dt;
-                    if (enemy.x < -500 || enemy.x > canvas.width + 500 ||
-                        enemy.y < -500 || enemy.y > canvas.height + 500) {
-                        enemy.health = 0;
-                        return;
-                    }
-                    if (enemy.flashTimer > 0) enemy.flashTimer -= dt;
-                    const enemyImage = enemyImages[enemy.spritePath];
-                    const size = enemy.name === 'boss' ? 160 : 50;
-                    ctx.save();
-                    ctx.translate(enemy.x, enemy.y);
-                    const rotation = Math.atan2(visualEarthY - enemy.y, visualEarthX - enemy.x);
-                    // BUG FIX: Use the specific offset for each enemy, with a default for regular enemies
-                    const rotationOffset = enemy.rotationOffset || Math.PI / 2;
-                    ctx.rotate(rotation + rotationOffset);
-                    ctx.globalCompositeOperation = 'lighter';
-                    if (enemyImage && enemyImage.complete && enemyImage.naturalHeight !== 0) {
-                        ctx.drawImage(enemyImage, -size/2, -size/2, size, size);
-                    } else {
-                        ctx.fillStyle = enemy.color || '#ef4444';
-                        ctx.beginPath();
-                        ctx.arc(0, 0, size/2, 0, 2*Math.PI);
-                        ctx.fill();
-                    }
-                    ctx.globalCompositeOperation = 'source-over';
-                    ctx.restore();
-                    if (enemy.health < enemy.maxHealth) {
-                        const barWidth = size * 0.8;
-                        const barHeight = 5;
-                        const healthPercent = Math.max(0, Math.min(1, enemy.health / enemy.maxHealth));
-                        ctx.fillStyle = 'rgba(0,0,0,0.5)';
-                        ctx.fillRect(enemy.x - barWidth/2, enemy.y - size/2 - 12, barWidth, barHeight);
-                        ctx.fillStyle = healthPercent > 0.3 ? '#10b981' : '#ef4444';
-                        ctx.fillRect(enemy.x - barWidth/2, enemy.y - size/2 - 12, barWidth * healthPercent, barHeight);
-                    }
-                    const dist = Math.hypot(enemy.x - visualEarthX, enemy.y - visualEarthY);
-                    if (dist < EARTH_COLLISION_RADIUS && gameState.shieldHealth > 0) {
-                        const shield = shopItems.shields.find(s => s.id === gameState.equipment.shield);
-                        if (shield && shield.reflect && Math.random() < shield.reflect) {
-                            createExplosion(enemy.x, enemy.y, 15, enemy.color, 0.8, enemy.name === 'boss');
-                            if (audioManager) audioManager.playSFX(enemy.name === 'boss' ? 'bossExplode' : 'explosion');
-                            deathStats.enemiesKilled++;
-                            coins += enemy.coins;
-                            score += 2 * enemy.coins;
-                            addCombo();
-                            enemy.health = 0;
                         } else {
-                            gameState.shieldHealth -= enemy.health;
-                            if (shield && shield.absorb) {
-                                coins += Math.floor(2 * enemy.health);
+                            let baseVx = Math.cos(angleToEarth) * enemy.speed;
+                            let baseVy = Math.sin(angleToEarth) * enemy.speed;
+                            switch (enemy.behavior) {
+                                case 'arc':
+                                    const arcOffset = Math.sin(enemy.behaviorTimer * 2) * 0.3;
+                                    enemy.vx = baseVx + Math.cos(angleToEarth + Math.PI/2) * arcOffset;
+                                    enemy.vy = baseVy + Math.sin(angleToEarth + Math.PI/2) * arcOffset;
+                                    break;
+                                case 'strafe':
+                                    const strafeOffset = Math.sin(enemy.behaviorTimer * 4) * 0.5;
+                                    enemy.vx = baseVx + Math.cos(angleToEarth + Math.PI/2) * strafeOffset;
+                                    enemy.vy = baseVy + Math.sin(angleToEarth + Math.PI/2) * strafeOffset;
+                                    break;
+                                case 'zigzag':
+                                    const zigOffset = Math.sin(enemy.behaviorTimer * 8) * 0.6;
+                                    enemy.vx = baseVx + Math.cos(angleToEarth + Math.PI/2) * zigOffset;
+                                    enemy.vy = baseVy + Math.sin(angleToEarth + Math.PI/2) * zigOffset;
+                                    break;
+                                default:
+                                    enemy.vx = baseVx;
+                                    enemy.vy = baseVy;
+                                    break;
                             }
-                            createExplosion(enemy.x, enemy.y, 12, enemy.color, 0.6, enemy.name === 'boss');
+                        }
+                        enemy.x += enemy.vx * speedFactor * 60 * dt;
+                        enemy.y += enemy.vy * speedFactor * 60 * dt;
+                        if (enemy.x < -500 || enemy.x > canvas.width + 500 || 
+                            enemy.y < -500 || enemy.y > canvas.height + 500) {
+                            enemy.health = 0;
+                            return;
+                        }
+                        if (enemy.flashTimer > 0) enemy.flashTimer -= dt;
+                        const enemyImage = enemyImages[enemy.spritePath];
+                        const size = enemy.name === 'boss' ? 160 : 50;
+                        ctx.save();
+                        ctx.translate(enemy.x, enemy.y);
+                        const rotation = Math.atan2(visualEarthY - enemy.y, visualEarthX - enemy.x);
+                        const rotationOffset = enemy.rotationOffset || Math.PI / 2;
+                        ctx.rotate(rotation + rotationOffset);
+                        ctx.globalCompositeOperation = 'lighter';
+                        if (enemyImage && enemyImage.complete && enemyImage.naturalWidth !== 0) {
+                            ctx.drawImage(enemyImage, -size/2, -size/2, size, size);
+                        } else {
+                            ctx.fillStyle = enemy.color || '#ef4444';
+                            ctx.beginPath();
+                            ctx.arc(0, 0, size/2, 0, 2*Math.PI);
+                            ctx.fill();
+                        }
+                        ctx.globalCompositeOperation = 'source-over';
+                        ctx.restore();
+                        if (enemy.health < enemy.maxHealth) {
+                            const barWidth = size * 0.8;
+                            const barHeight = 5;
+                            const healthPercent = Math.max(0, Math.min(1, enemy.health / enemy.maxHealth));
+                            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                            ctx.fillRect(enemy.x - barWidth/2, enemy.y - size/2 - 12, barWidth, barHeight);
+                            ctx.fillStyle = healthPercent > 0.3 ? '#10b981' : '#ef4444';
+                            ctx.fillRect(enemy.x - barWidth/2, enemy.y - size/2 - 12, barWidth * healthPercent, barHeight);
+                        }
+                        const dist = Math.hypot(enemy.x - visualEarthX, enemy.y - visualEarthY);
+                        if (dist < EARTH_COLLISION_RADIUS && gameState.shieldHealth > 0) {
+                            const shield = shopItems.shields.find(s => s.id === gameState.equipment.shield);
+                            if (shield && shield.reflect && Math.random() < shield.reflect) {
+                                createExplosion(enemy.x, enemy.y, 15, enemy.color, 0.8, enemy.name === 'boss');
+                                if (audioManager) audioManager.playSFX(enemy.name === 'boss' ? 'bossExplode' : 'explosion');
+                                deathStats.enemiesKilled++;
+                                coins += enemy.coins;
+                                score += 2 * enemy.coins;
+                                addCombo();
+                                enemy.health = 0;
+                            } else {
+                                gameState.shieldHealth -= enemy.health;
+                                if (shield && shield.absorb) {
+                                    coins += Math.floor(2 * enemy.health);
+                                }
+                                createExplosion(enemy.x, enemy.y, 12, enemy.color, 0.6, enemy.name === 'boss');
+                                if (audioManager) audioManager.playSFX('warning');
+                                screenShake += 5;
+                                vibrate(30);
+                                enemy.health = 0;
+                            }
+                        }
+                        if (dist < EARTH_IMPACT_RADIUS) {
+                            lives--;
+                            updateUI();
+                            createExplosion(visualEarthX, visualEarthY, 20, '#ef4444', 1.2);
                             if (audioManager) audioManager.playSFX('warning');
-                            screenShake += 5;
-                            vibrate(30);
+                            screenShake += 15;
+                            vibrate(100);
+                            comboCount = 0;
+                            updateComboDisplay();
+                            if (lives <= 0) endGame();
                             enemy.health = 0;
                         }
-                    }
-                    if (dist < EARTH_IMPACT_RADIUS) {
-                        lives--;
-                        updateUI();
-                        createExplosion(visualEarthX, visualEarthY, 20, '#ef4444', 1.2);
-                        if (audioManager) audioManager.playSFX('warning');
-                        screenShake += 15;
-                        vibrate(100);
-                        comboCount = 0;
-                        updateComboDisplay();
-                        if (lives <= 0) endGame();
-                        enemy.health = 0;
-                    }
                     } catch (err) {
                         console.warn('Enemy update error:', err);
                         enemy.health = 0;
@@ -2962,18 +2983,15 @@
                     const p = particles[i];
                     if (!p) continue;
                     
-                    // Update particle physics
                     p.x += p.vx * dt * 60;
                     p.y += p.vy * dt * 60;
                     p.vy += 0.5;
                     p.lifetime -= dt;
                     
-                    // Check if dead
                     if (p.lifetime <= 0) {
                         particlePool.release(p);
                         particles.splice(i, 1);
                     } else {
-                        // Draw particle
                         const alpha = p.lifetime / p.maxLifetime;
                         ctx.globalAlpha = alpha;
                         ctx.fillStyle = p.color;
@@ -3259,7 +3277,6 @@
                     }
                 }
                 
-                // Remove all dead enemies at once
                 if (enemiesToRemove.length > 0) {
                     enemies = enemies.filter(e => !enemiesToRemove.includes(e));
                 }
@@ -3344,7 +3361,7 @@
                 if (livesEl) livesEl.textContent = lives;
                 if (coinsEl) coinsEl.textContent = coins;
                 if (missilesEl) missilesEl.textContent = missiles;
-                if (shopBalanceEl) shopBalanceEl.textContent = `腸 ${coins}`;
+                if (shopBalanceEl) shopBalanceEl.textContent = coins;
             }
             
             function showShop() {
@@ -3405,7 +3422,7 @@
                         <img src="${item.sprite}" class="item-sprite" alt="${item.name}" onerror="this.style.display='none'">
                         <div class="item-name">${item.name}</div>
                         <div class="item-desc">${item.desc}</div>
-                        <div class="item-price">${item.cost > 0 ? `腸 ${item.cost}` : "Free"}</div>
+                        <div class="item-price">${item.cost > 0 ? `💰 ${item.cost}` : "Free"}</div>
                         ${equipped ? '<div class="item-equipped-badge">Equipped</div>' : ""}
                     `;
                     if (!owned && item.cost > 0) {
@@ -3473,7 +3490,6 @@
 
         window.addEventListener('load', () => {
             Game = initializeGame();
-            // Position UI immediately to prevent jump
             setTimeout(() => {
                 if (Game && typeof Game.positionUIElements === 'function') {
                     Game.positionUIElements();
