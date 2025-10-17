@@ -3066,7 +3066,7 @@
             init();
             
             return {
-                startGame,
+                kickAudio, startGame,
                 showShop,
                 closeShop,
                 switchTab,
@@ -3089,7 +3089,7 @@
 <script>
   window.addEventListener('load', () => {
     window.Game?.startGame?.();
-    const kick = () => { window.Game?.startGame?.(); };
+    const kick = () => { window.Game?.startGame?.(); window.Game?.kickAudio?.(); };
     window.addEventListener('pointerdown', kick, { once:true });
     window.addEventListener('keydown',      kick, { once:true });
   });
