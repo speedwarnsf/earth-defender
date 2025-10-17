@@ -3364,8 +3364,7 @@
 
             init();
             
-            return {
-                kickAudio, startGame,
+            \1kickAudio, startGame,
                 showShop,
                 closeShop,
                 switchTab,
@@ -3386,14 +3385,13 @@
     </script>
 
 <script>
-  // Create global Game and wire Start + audio on the same gesture
   window.addEventListener('load', () => {
     try { window.Game = initializeGame(); } catch (e) { console.error('init error:', e); }
     function wireStartButtons() {
       const selectors = ['#startBtn','#playButton','#menuStart','#beginBtn','#start','#play','.start','.play'];
       const act = () => {
-        window.Game?.startGame?.();      // no args; preserves balance
-        window.Game?.kickAudio?.();      // audio unlock same tap
+        window.Game?.startGame?.();
+        window.Game?.kickAudio?.();
         const o = document.getElementById('tapToStart'); if (o) o.style.display = 'none';
       };
       selectors.forEach(sel => document.querySelectorAll(sel).forEach(btn => btn.addEventListener('click', act)));
