@@ -28,6 +28,21 @@
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
+
+  <!-- Minimal HUD so updateUI() has targets (non-intrusive; hidden until startGame) -->
+  <div id="hud" style="position:fixed;top:8px;left:8px;right:8px;display:none;gap:12px;justify-content:space-between;pointer-events:none;color:#fff;font:600 16px system-ui;z-index:10;">
+    <div>Wave: <span id="waveDisplay">1</span></div>
+    <div>Score: <span id="scoreDisplay">0</span></div>
+    <div>Lives: <span id="livesDisplay">3</span> | Coins: <span id="coinsDisplay">0</span> | Missiles: <span id="missilesDisplay">3</span></div>
+  </div>
+
+  <button
+    id="missileButton"
+    style="position:fixed;bottom:24px;right:24px;display:none;pointer-events:auto;padding:12px 16px;border-radius:12px;border:none;background:#0a84ff;color:#fff;font:600 14px system-ui;z-index:10;"
+    onclick="window.Game?.launchMissile?.()">
+    Fire
+  </button>
+
   <script>
     'use strict';
 
@@ -582,6 +597,19 @@
     // Boot
     window.addEventListener('load', () => {
       window.Game = initializeGame();
+    });
+  </script>
+
+  <!-- Auto-start + gesture-start (keeps your code untouched) -->
+  <script>
+    window.addEventListener('load', () => {
+      // Try to start immediately so enemies spawn without extra clicks
+      window.Game?.startGame?.();
+
+      // Also start on first user input (mobile audio policies, etc.)
+      const kick = () => { window.Game?.startGame?.(); };
+      window.addEventListener('pointerdown', kick, { once: true });
+      window.addEventListener('keydown', kick, { once: true });
     });
   </script>
 </body>
