@@ -1,519 +1,588 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <style>
-        /* ... (keep all existing styles) ... */
-        #victoryScreen img {
-            max-width: 100%;
-            height: auto; /* Fixes squishing */
-            margin: 0 auto;
-        }
-        #titleImage {
-            position: absolute;
-            top: 25%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 90%;
-            max-width: 400px;
-            z-index: 201;
-            image-rendering: auto;
-            mix-blend-mode: lighten;
-            opacity: 0.95;
-        }
-        /* ... (rest of styles) ... */
-    </style>
+  <meta charset="utf-8" />
+  <style>
+    /* ... (keep all existing styles) ... */
+    #victoryScreen img {
+      max-width: 100%;
+      height: auto; /* Fixes squishing */
+      margin: 0 auto;
+    }
+    #titleImage {
+      position: absolute;
+      top: 25%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
+      max-width: 400px;
+      z-index: 201;
+      image-rendering: auto;
+      mix-blend-mode: lighten;
+      opacity: 0.95;
+    }
+    /* ... (rest of styles) ... */
+    body { margin: 0; background:#0a0e1a; }
+    #gameCanvas { display:block; width:100vw; height:100vh; }
+  </style>
 </head>
 <body>
-    <canvas id="gameCanvas"></canvas>
-    <script>
-        function initializeGame() {
-            const canvas = document.getElementById('gameCanvas');
-            const ctx = canvas.getContext('2d');
-            let width = canvas.width = window.innerWidth;
-            let height = canvas.height = window.innerHeight;
-            class AudioManager {
-                constructor() {
-                    this.sounds = {
-                        'menu': { src: 'audio/menu.m4a', loop: true, volume: 0.6 },
-                        'level1': { src: 'audio/level1.m4a', loop: true, volume: 0.5 },
-                        'level2': { src: 'audio/level2.m4a', loop: true, volume: 0.5 },
-                        'level3': { src: 'audio/level3.m4a', loop: true, volume: 0.5 },
-                        'boss1': { src: 'audio/boss1.mp3', loop: true, volume: 0.5 },
-                        'boss2': { src: 'audio/boss2.m4a', loop: true, volume: 0.5 },
-                        'boss20': { src: 'audio/boss20.m4a', loop: true, volume: 0.5 },
-                        'victory': { src: 'audio/victory.m4a', loop: false, volume: 0.7 },
-                        'gameover': { src: 'audio/gameover.mp3', loop: false, volume: 0.7 },
-                        'shoot': { src: 'audio/shoot.mp3', loop: false, volume: 0.3 },
-                        'hit': { src: 'audio/hit.mp3', loop: false, volume: 0.4 },
-                        'explosion': { src: 'audio/explosion.mp3', loop: false, volume: 0.5 },
-                        'powerup': { src: 'audio/powerup.mp3', loop: false, volume: 0.6 },
-                        'missile': { src: 'audio/missile.mp3', loop: false, volume: 0.5 },
-                        'bossHit': { src: 'audio/bossHit.mp3', loop: false, volume: 0.6 },
-                    };
-                    this.audioElements = {};
-                    this.currentMusic = null;
-                    this.musicVolume = 1.0;
-                    this.sfxVolume = 1.0;
-                    this.loadAudio();
-                }
-                loadAudio() { /* ... */ }
-                playMusic(key, fadeTime = 0) { /* ... */ }
-                stopMusic(fadeTime = 0) { /* ... */ }
-                playRandomLevelTrack() { /* ... */ }
-            }
-            let audioManager = new AudioManager();
-            let gameRunning = false;
-            let wave = 1;
-            let score = 0;
-            let highScore = 0;
-            let lives = 3;
-            let coins = 0;
-            let missiles = 3;
-            let playerAngle = 0;
-            let playerSpeed = 0;
-            let enemies = [];
-            let projectiles = [];
-            let missileProjectiles = [];
-            let bossProjectiles = [];
-            let explosions = [];
-            let damageNumbers = [];
-            let gameState = {
-                difficulty: 'normal',
-                owned: { weapons: [], shields: [], systems: [] },
-                equipment: { weapon: 'basic', shield: 'none', system: 'none' },
-                maxShieldHealth: 0,
-                shieldHealth: 0,
-            };
-            let deathStats = { waveReached: 1, enemiesKilled: 0, coinsEarned: 0, accuracy: '0%' };
-            let shopReturnState = 'menu';
-            let lastTime = 0;
-            const ENEMY_SPAWN_RADIUS = 400;
-            const ENEMY_SPEED = 1.5;
-            const PROJECTILE_SPEED = 5;
-            const MISSILE_SPEED = 4;
-            const BOSS_PROJECTILE_SPEED = 2;
-            const ENEMY_HIT_RADIUS = 20;
-            const BOSS_HIT_RADIUS = 40;
-            const PLAYER_RADIUS = 20;
-            const EARTH_RADIUS = 80;
-            const FRICTION = 0.97;
-            const ACCELERATION = 0.05;
-            const MAX_SPEED = 5;
-            const DIFFICULTY_MODIFIERS = {
-                easy: { enemySpeed: 1.0, enemyHealth: 1.0, spawnRate: 1.0 },
-                normal: { enemySpeed: 1.5, enemyHealth: 1.5, spawnRate: 1.5 },
-                hard: { enemySpeed: 2.0, enemyHealth: 2.0, spawnRate: 2.0 },
-            };
-            function resizeCanvas() {
-                width = canvas.width = window.innerWidth;
-                height = canvas.height = window.innerHeight;
-            }
-            window.addEventListener('resize', resizeCanvas);
-            resizeCanvas();
-            function loadImage(src) {
-                return new Promise((resolve, reject) => {
-                    const img = new Image();
-                    img.src = src;
-                    img.onload = () => resolve(img);
-                    img.onerror = () => {
-                        console.error(`Failed to load image: ${src}`);
-                        resolve(null);
-                    };
-                });
-            }
-            async function init() {
-                const playerImg = await loadImage('assets/Ship-Undamaged.png'); // Undamaged ship
-                const damagedImg = await loadImage('assets/Ship-Damaged.png'); // Damaged ship
-                const enemyImg = await loadImage('assets/enemies.jpg'); // Adjust if needed
-                const upgradesImg = await loadImage('assets/upgrades-tier1.jpg'); // Adjust if needed
-                const bossProjectileImg = await loadImage('assets/IMG_1439_2.JPG'); // Projectile for boss
-                const victoryImg = await loadImage('assets/Victory-Screen.png'); // Victory screen
-                document.getElementById('victoryScreen').innerHTML = `<h2>Victory!</h2><img src="${victoryImg ? victoryImg.src : 'assets/Victory-Screen.png'}" alt="Victory Image"><p>You defended Earth!</p><button class="button" onclick="Game.closeVictoryScreen()">Back to Menu</button>`;
-                function drawPlayer() {
-                    ctx.save();
-                    ctx.translate(width / 2, height / 2);
-                    ctx.rotate(playerAngle + Math.PI / 2);
-                    const useDamaged = lives < 2; // Switch to damaged ship if lives are low
-                    if (useDamaged && damagedImg) {
-                        ctx.drawImage(damagedImg, -PLAYER_RADIUS, -PLAYER_RADIUS, PLAYER_RADIUS * 2, PLAYER_RADIUS * 2);
-                    } else if (playerImg) {
-                        ctx.drawImage(playerImg, -PLAYER_RADIUS, -PLAYER_RADIUS, PLAYER_RADIUS * 2, PLAYER_RADIUS * 2);
-                    } else {
-                        ctx.fillStyle = '#00f';
-                        ctx.beginPath();
-                        ctx.arc(0, EARTH_RADIUS + PLAYER_RADIUS, PLAYER_RADIUS, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-                    ctx.restore();
-                }
-                function draw() {
-                    ctx.clearRect(0, 0, width, height);
-                    ctx.save();
-                    ctx.translate(width / 2, height / 2);
-                    ctx.fillStyle = '#000080';
-                    ctx.beginPath();
-                    ctx.arc(0, 0, EARTH_RADIUS, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#00ff00';
-                    ctx.beginPath();
-                    ctx.arc(0, 0, EARTH_RADIUS - 10, 0, Math.PI * 2);
-                    ctx.fill();
-                    drawPlayer();
-                    enemies.forEach(enemy => {
-                        ctx.save();
-                        ctx.translate(enemy.x, enemy.y);
-                        if (enemyImg && enemy.name !== 'boss') {
-                            ctx.drawImage(enemyImg, -enemy.radius, -enemy.radius, enemy.radius * 2, enemy.radius * 2);
-                        } else if (enemy.name === 'boss') {
-                            ctx.fillStyle = '#f00'; // Boss body fallback
-                            ctx.fillRect(-enemy.radius, -enemy.radius, enemy.radius * 2, enemy.radius * 2);
-                        } else {
-                            ctx.fillStyle = '#f00';
-                            ctx.beginPath();
-                            ctx.arc(0, 0, enemy.radius, 0, Math.PI * 2);
-                            ctx.fill();
-                        }
-                        if (enemy.flashTimer > 0) {
-                            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-                            ctx.beginPath();
-                            ctx.arc(0, 0, enemy.radius, 0, Math.PI * 2);
-                            ctx.fill();
-                            enemy.flashTimer -= 1 / 60;
-                        }
-                        ctx.restore();
-                    });
-                    bossProjectiles.forEach(bp => {
-                        ctx.save();
-                        ctx.translate(bp.x, bp.y);
-                        if (bossProjectileImg) {
-                            ctx.drawImage(bossProjectileImg, -10, -10, 20, 20); // Use projectile image
-                        } else {
-                            ctx.fillStyle = '#f00'; // Red square fallback
-                            ctx.fillRect(-10, -10, 20, 20);
-                        }
-                        ctx.restore();
-                    });
-                    // ... (rest of draw function remains the same)
-                }
-                function update(deltaTime) {
-                    if (!gameRunning) return;
-                    playerSpeed *= FRICTION;
-                    playerAngle += playerSpeed;
-                    if (Math.abs(playerSpeed) > MAX_SPEED) playerSpeed = Math.sign(playerSpeed) * MAX_SPEED;
-                    if (Math.random() < 0.02 * DIFFICULTY_MODIFIERS[gameState.difficulty].spawnRate) {
-                        const angle = Math.random() * Math.PI * 2;
-                        const enemy = {
-                            x: Math.cos(angle) * ENEMY_SPAWN_RADIUS,
-                            y: Math.sin(angle) * ENEMY_SPAWN_RADIUS,
-                            dx: -Math.cos(angle) * ENEMY_SPEED * DIFFICULTY_MODIFIERS[gameState.difficulty].enemySpeed,
-                            dy: -Math.sin(angle) * ENEMY_SPEED * DIFFICULTY_MODIFIERS[gameState.difficulty].enemySpeed,
-                            radius: 20,
-                            health: 10 * DIFFICULTY_MODIFIERS[gameState.difficulty].enemyHealth,
-                            name: 'regular',
-                            flashTimer: 0,
-                        };
-                        if (wave % 5 === 0 && enemies.length === 0) {
-                            enemy.radius = 40;
-                            enemy.health = 50 * DIFFICULTY_MODIFIERS[gameState.difficulty].enemyHealth;
-                            enemy.name = 'boss';
-                        }
-                        enemies.push(enemy);
-                    }
-                    enemies.forEach(enemy => { enemy.x += enemy.dx; enemy.y += enemy.dy; });
-                    projectiles.forEach(p => { p.x += Math.cos(p.angle) * PROJECTILE_SPEED; p.y += Math.sin(p.angle) * PROJECTILE_SPEED; });
-                    missileProjectiles.forEach(m => { m.x += Math.cos(m.angle) * MISSILE_SPEED; m.y += Math.sin(m.angle) * MISSILE_SPEED; });
-                    bossProjectiles.forEach(bp => { bp.x += Math.cos(bp.angle) * BOSS_PROJECTILE_SPEED; bp.y += Math.sin(bp.angle) * BOSS_PROJECTILE_SPEED; });
-                    explosions.forEach(e => { e.opacity -= 0.02; if (e.opacity <= 0) e.remove = true; });
-                    damageNumbers.forEach(d => { d.y -= 1; d.opacity -= 0.02; if (d.opacity <= 0) d.remove = true; });
-                    let enemiesToRemove = [];
-                    let shotsFired = projectiles.length;
-                    let shotsHit = 0;
-                    projectiles.forEach((p, i) => {
-                        const nearbyEnemies = enemies.filter(e => Math.hypot(p.x - e.x, p.y - e.y) < 50);
-                        for (let enemy of nearbyEnemies) {
-                            const hitRadius = enemy.name === 'boss' ? BOSS_HIT_RADIUS : ENEMY_HIT_RADIUS;
-                            if (Math.hypot(p.x - enemy.x, p.y - e.y) < hitRadius) {
-                                shotsHit++;
-                                if (audioManager) audioManager.playSFX(enemy.name === 'boss' ? 'bossHit' : 'hit');
-                                enemy.health -= Math.ceil(p.damage);
-                                enemy.flashTimer = 0.1;
-                                showDamageNumber(enemy.x, enemy.y, Math.ceil(p.damage));
-                                if (enemy.health <= 0) {
-                                    handleEnemyDeath(enemy);
-                                    enemiesToRemove.push(enemy);
-                                }
-                                if (!p.piercing) {
-                                    projectiles.splice(i, 1);
-                                    break;
-                                }
-                            }
-                        }
-                    });
-                    // ... (rest of update function remains the same)
-                    deathStats.accuracy = shotsFired > 0 ? `${(shotsHit / shotsFired * 100).toFixed(1)}%` : '0%';
-                }
-                function endGame() {
-                    if (audioManager) {
-                        audioManager.stopMusic(500);
-                        setTimeout(() => audioManager.playMusic('gameover', 500), 600);
-                    }
-                    gameRunning = false;
-                    document.getElementById('hud').style.display = 'none';
-                    document.getElementById('missileButton').style.display = 'none';
-                    showDeathScreen();
-                }
-                function showVictoryScreen() {
-                    if (audioManager) {
-                        audioManager.stopMusic(500);
-                        setTimeout(() => audioManager.playMusic('victory', 500), 700);
-                    }
-                    gameRunning = false;
-                    document.getElementById('hud').style.display = 'none';
-                    document.getElementById('missileButton').style.display = 'none';
-                    document.getElementById('victoryScreen').style.display = 'flex';
-                    saveGameState();
-                }
-                function closeVictoryScreen() {
-                    if (audioManager) audioManager.playMusic('menu');
-                    document.getElementById('victoryScreen').style.display = 'none';
-                    document.getElementById('menu').style.display = 'block';
-                    document.getElementById('titleImage').style.display = 'block';
-                }
-                function showDeathScreen() {
-                    const deathScreen = document.getElementById("deathScreen");
-                    const statsEl = document.getElementById("deathStats");
-                    const recommendEl = document.getElementById("deathRecommendation");
-                    if (!deathScreen || !statsEl || !recommendEl) return;
-                    deathStats.coinsEarned = coins - deathStats.coinsEarned;
-                    const statsHTML = `
-                        <div class="death-stat-row"><span class="death-stat-label">Waves Survived</span><span class="death-stat-value">${deathStats.waveReached - 1}</span></div>
-                        <div class="death-stat-row"><span class="death-stat-label">Enemies Killed</span><span class="death-stat-value">${deathStats.enemiesKilled}</span></div>
-                        <div class="death-stat-row"><span class="death-stat-label">Final Score</span><span class="death-stat-value">${score}</span></div>
-                        <div class="death-stat-row"><span class="death-stat-label">High Score</span><span class="death-stat-value">${highScore}</span></div>
-                        <div class="death-stat-row"><span class="death-stat-label">Coins Earned</span><span class="death-stat-value">${deathStats.coinsEarned}</span></div>
-                        <div class="death-stat-row"><span class="death-stat-label">Accuracy</span><span class="death-stat-value">${deathStats.accuracy}</span></div>
-                    `;
-                    statsEl.innerHTML = statsHTML;
-                    let recommendation = "";
-                    if (deathStats.waveReached < 5) {
-                        recommendation = "Consider upgrading your weapon or shield in the shop.";
-                    } else if (deathStats.waveReached < 10) {
-                        recommendation = "You're making progress! Try the Spread Shot or Rail Gun.";
-                    } else {
-                        recommendation = "Impressive! You're a skilled defender.";
-                    }
-                    recommendEl.textContent = recommendation;
-                    deathScreen.style.display = "flex";
-                    saveGameState();
-                }
-                function closeDeathScreen() {
-                    if (audioManager) audioManager.playMusic('menu');
-                    document.getElementById('deathScreen').style.display = 'none';
-                    document.getElementById('menu').style.display = 'block';
-                    document.getElementById('titleImage').style.display = 'block';
-                }
-                function updateUI() {
-                    const waveEl = document.getElementById('waveDisplay');
-                    const scoreEl = document.getElementById('scoreDisplay');
-                    const livesEl = document.getElementById('livesDisplay');
-                    const coinsEl = document.getElementById('coinsDisplay');
-                    const missilesEl = document.getElementById('missilesDisplay');
-                    const shopBalanceEl = document.getElementById('shopBalance');
-                    if (waveEl) waveEl.textContent = wave;
-                    if (scoreEl) scoreEl.textContent = score;
-                    if (livesEl) livesEl.textContent = lives;
-                    if (coinsEl) coinsEl.textContent = coins;
-                    if (missilesEl) missilesEl.textContent = missiles;
-                    if (shopBalanceEl) shopBalanceEl.textContent = coins;
-                }
-                function showShop() {
-                    if (document.getElementById('menu').style.display !== 'none' || document.getElementById('deathScreen').style.display !== 'none') {
-                        shopReturnState = 'menu';
-                    }
-                    document.getElementById('menu').style.display = 'none';
-                    document.getElementById('deathScreen').style.display = 'none';
-                    document.getElementById('shop').style.display = 'flex';
-                    renderShop('weapons');
-                }
-                function closeShop() {
-                    document.getElementById('shop').style.display = 'none';
-                    if (shopReturnState === 'in_game') {
-                        document.getElementById('waveTransition').style.display = 'flex';
-                    } else {
-                        document.getElementById('menu').style.display = 'block';
-                    }
-                }
-                function showInGameShop() {
-                    shopReturnState = 'in_game';
-                    document.getElementById('waveTransition').style.display = 'none';
-                    showShop();
-                }
-                function showTutorial() {
-                    document.getElementById('menu').style.display = 'none';
-                    document.getElementById('tutorial').style.display = 'flex';
-                }
-                function closeTutorial() {
-                    document.getElementById('tutorial').style.display = 'none';
-                    document.getElementById('menu').style.display = 'block';
-                }
-                function switchTab(tabName) {
-                    document.querySelectorAll(".tab").forEach(tab => tab.classList.remove("active"));
-                    event.target.classList.add("active");
-                    renderShop(tabName);
-                }
-                function renderShop(category) {
-                    const shopItemsEl = document.getElementById("shopItems");
-                    if (!shopItemsEl) return;
-                    shopItemsEl.innerHTML = "";
-                    const equipmentKey = category === "weapons" ? "weapon" : category === "shields" ? "shield" : "system";
-                    const items = shopItems[category];
-                    if (!items) return;
-                    items.forEach(item => {
-                        const owned = gameState.owned[category].includes(item.id);
-                        const equipped = gameState.equipment[equipmentKey] === item.id;
-                        const canAfford = coins >= item.cost;
-                        const card = document.createElement("div");
-                        card.className = `item-card ${equipped ? "equipped" : ""}`;
-                        card.innerHTML = `
-                            <img src="${item.sprite}" class="item-sprite" alt="${item.name}" onerror="this.style.display='none'">
-                            <div class="item-name">${item.name}</div>
-                            <div class="item-desc">${item.desc}</div>
-                            <div class="item-price">${item.cost > 0 ? `💰 ${item.cost}` : "Free"}</div>
-                            ${equipped ? '<div class="item-equipped-badge">Equipped</div>' : ""}
-                        `;
-                        if (!owned && item.cost > 0) {
-                            const btn = document.createElement("button");
-                            btn.className = "button";
-                            btn.textContent = canAfford ? "Buy" : "Not enough coins";
-                            btn.disabled = !canAfford;
-                            btn.onclick = () => buyItem(category, item.id);
-                            card.appendChild(btn);
-                        } else if (!equipped) {
-                            const btn = document.createElement("button");
-                            btn.className = "button";
-                            btn.textContent = "Equip";
-                            btn.onclick = () => equipItem(category, item.id);
-                            card.appendChild(btn);
-                        }
-                        shopItemsEl.appendChild(card);
-                    });
-                }
-                function buyItem(category, itemId) {
-                    const item = shopItems[category].find(i => i.id === itemId);
-                    if (!item || coins < item.cost) return;
-                    coins -= item.cost;
-                    if (audioManager) audioManager.playSFX("powerup");
-                    gameState.owned[category].push(itemId);
-                    updateUI();
-                    saveGameState();
-                    renderShop(category);
-                    vibrate(30);
-                }
-                function equipItem(category, itemId) {
-                    const equipmentKey = category === "weapons" ? "weapon" : category === "shields" ? "shield" : "system";
-                    gameState.equipment[equipmentKey] = itemId;
-                    if (category === "shields") {
-                        const shield = shopItems.shields.find(s => s.id === itemId);
-                        if (shield) {
-                            gameState.maxShieldHealth = shield.health || 0;
-                            gameState.shieldHealth = shield.health || 0;
-                        }
-                    }
-                    saveGameState();
-                    renderShop(category);
-                    vibrate(20);
-                }
-                function startGame() {
-                    if (gameRunning) return;
-                    gameRunning = true;
-                    wave = 1;
-                    score = 0;
-                    lives = 3;
-                    coins = 0;
-                    missiles = 3;
-                    enemies = [];
-                    projectiles = [];
-                    missileProjectiles = [];
-                    bossProjectiles = [];
-                    explosions = [];
-                    damageNumbers = [];
-                    document.getElementById('menu').style.display = 'none';
-                    document.getElementById('titleImage').style.display = 'none';
-                    document.getElementById('hud').style.display = 'flex';
-                    document.getElementById('missileButton').style.display = 'block';
-                    if (audioManager) audioManager.playMusic('menu', 0);
-                    setTimeout(() => {
-                        if (audioManager) audioManager.playRandomLevelTrack();
-                        requestAnimationFrame(gameLoop);
-                    }, 600);
-                }
-                function startWave() {
-                    if (audioManager) {
-                        audioManager.stopMusic(500);
-                        setTimeout(() => {
-                            if (wave === 20) {
-                                audioManager.playMusic('boss20', 500);
-                            } else if (isBossWave()) {
-                                const bossTracks = ['boss1', 'boss2'];
-                                const randomBossTrack = bossTracks[Math.floor(Math.random() * bossTracks.length)];
-                                audioManager.playMusic(randomBossTrack, 500);
-                            } else {
-                                audioManager.playRandomLevelTrack();
-                            }
-                        }, 600);
-                    }
-                    // Add wave logic here if needed
-                }
-                function isBossWave() {
-                    return wave % 5 === 0;
-                }
-                function triggerHitPause(duration, scale) {
-                    // Placeholder
-                }
-                function createExplosion(x, y, radius, color, opacity, isBoss) {
-                    explosions.push({ x, y, radius, color, opacity, remove: false });
-                }
-                function showDamageNumber(x, y, damage) {
-                    damageNumbers.push({ x, y, text: damage, opacity: 1.0, remove: false });
-                }
-                function handleEnemyDeath(enemy) {
-                    score += enemy.name === 'boss' ? 100 : 10;
-                    coins += enemy.name === 'boss' ? 50 : 5;
-                    deathStats.enemiesKilled++;
-                }
-                function saveGameState() {
-                    // Placeholder
-                }
-                function vibrate(duration) {
-                    if (navigator.vibrate) navigator.vibrate(duration);
-                }
-                function gameLoop(time = 0) {
-                    const deltaTime = (time - lastTime) / 1000;
-                    lastTime = time;
-                    update(deltaTime);
-                    draw();
-                    if (gameRunning) requestAnimationFrame(gameLoop);
-                }
-                init();
-            }
-            return {
-                startGame,
-                showShop,
-                closeShop,
-                switchTab,
-                launchMissile: () => {},
-                closeDeathScreen,
-                closeVictoryScreen,
-                resumeGame: () => {},
-                showInGameShop,
-                showTutorial,
-                closeTutorial,
-                setDifficulty: (diff) => { gameState.difficulty = diff; }
-            };
+  <canvas id="gameCanvas"></canvas>
+  <script>
+    'use strict';
+
+    function initializeGame() {
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+
+      // --- Hi-DPI crispness ---
+      function fitCanvas() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const cssW = window.innerWidth;
+        const cssH = window.innerHeight;
+        canvas.style.width = cssW + 'px';
+        canvas.style.height = cssH + 'px';
+        canvas.width = Math.floor(cssW * dpr);
+        canvas.height = Math.floor(cssH * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        width = cssW; height = cssH;
+      }
+
+      let width = window.innerWidth;
+      let height = window.innerHeight;
+      window.addEventListener('resize', fitCanvas);
+      fitCanvas();
+
+      // ---- SAFE AudioManager (no-ops so nothing crashes) ----
+      class AudioManager {
+        constructor() {
+          this.sounds = {
+            menu:    { src: 'audio/menu.m4a', loop: true,  volume: 0.6 },
+            level1:  { src: 'audio/level1.m4a', loop: true, volume: 0.5 },
+            level2:  { src: 'audio/level2.m4a', loop: true, volume: 0.5 },
+            level3:  { src: 'audio/level3.m4a', loop: true, volume: 0.5 },
+            boss1:   { src: 'audio/boss1.mp3', loop: true,  volume: 0.5 },
+            boss2:   { src: 'audio/boss2.m4a', loop: true,  volume: 0.5 },
+            boss20:  { src: 'audio/boss20.m4a', loop: true, volume: 0.5 },
+            victory: { src: 'audio/victory.m4a', loop: false, volume: 0.7 },
+            gameover:{ src: 'audio/gameover.mp3', loop:false, volume: 0.7 },
+            shoot:   { src: 'audio/shoot.mp3', loop:false, volume: 0.3 },
+            hit:     { src: 'audio/hit.mp3', loop:false, volume: 0.4 },
+            explosion:{src: 'audio/explosion.mp3', loop:false, volume: 0.5 },
+            powerup: { src: 'audio/powerup.mp3', loop:false, volume: 0.6 },
+            missile: { src: 'audio/missile.mp3', loop:false, volume: 0.5 },
+            bossHit: { src: 'audio/bossHit.mp3', loop:false, volume: 0.6 },
+          };
+          this.currentMusic = null;
+          this.musicVolume = 1.0;
+          this.sfxVolume = 1.0;
         }
-        window.addEventListener('load', () => {
-            Game = initializeGame();
+        loadAudio(){ /* intentionally no-op for this stub */ }
+        playMusic(){ /* no-op */ }
+        stopMusic(){ /* no-op */ }
+        playRandomLevelTrack(){ /* no-op */ }
+        playSFX(){ /* no-op */ }
+      }
+      const audioManager = new AudioManager();
+
+      // --- STATE ---
+      let gameRunning = false;
+      let wave = 1, score = 0, highScore = 0, lives = 3, coins = 0, missiles = 3;
+      let playerAngle = 0, playerSpeed = 0;
+      let enemies = [], projectiles = [], missileProjectiles = [], bossProjectiles = [];
+      let explosions = [], damageNumbers = [];
+      let lastTime = 0;
+
+      const ENEMY_SPAWN_RADIUS = 400;
+      const ENEMY_SPEED = 1.5;
+      const PROJECTILE_SPEED = 5;
+      const MISSILE_SPEED = 4;
+      const BOSS_PROJECTILE_SPEED = 2;
+      const ENEMY_HIT_RADIUS = 20;
+      const BOSS_HIT_RADIUS = 40;
+      const PLAYER_RADIUS = 20;
+      const EARTH_RADIUS = 80;
+      const FRICTION = 0.97;
+      const ACCELERATION = 0.05;
+      const MAX_SPEED = 5;
+
+      const DIFFICULTY_MODIFIERS = {
+        easy:   { enemySpeed: 1.0, enemyHealth: 1.0, spawnRate: 1.0 },
+        normal: { enemySpeed: 1.5, enemyHealth: 1.5, spawnRate: 1.5 },
+        hard:   { enemySpeed: 2.0, enemyHealth: 2.0, spawnRate: 2.0 },
+      };
+
+      const gameState = {
+        difficulty: 'normal',
+        owned: { weapons: [], shields: [], systems: [] },
+        equipment: { weapon: 'basic', shield: 'none', system: 'none' },
+        maxShieldHealth: 0,
+        shieldHealth: 0,
+      };
+      const deathStats = { waveReached: 1, enemiesKilled: 0, coinsEarned: 0, accuracy: '0%' };
+      let shopReturnState = 'menu';
+
+      // shopItems stub to avoid crashes in renderShop/buy/equip
+      const shopItems = { weapons: [], shields: [], systems: [] };
+
+      // --- Asset holders (assigned in init) ---
+      let playerImg = null, damagedImg = null, enemyImg = null, bossProjectileImg = null;
+
+      function loadImage(src) {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => { console.error('Failed to load image:', src); resolve(null); };
+          img.src = src;
         });
-    </script>
+      }
+
+      async function init() {
+        playerImg        = await loadImage('assets/Ship-Undamaged.png');
+        damagedImg       = await loadImage('assets/Ship-Damaged.png');
+        enemyImg         = await loadImage('assets/enemies.jpg');
+        bossProjectileImg= await loadImage('assets/IMG_1439_2.JPG');
+        const victoryImg = await loadImage('assets/Victory-Screen.png');
+
+        // Guard: this page has no victory/menu HUD nodes; only write if present
+        const victoryEl = document.getElementById('victoryScreen');
+        if (victoryEl) {
+          victoryEl.innerHTML =
+            `<h2>Victory!</h2>
+             <img src="${(victoryImg && victoryImg.src) || 'assets/Victory-Screen.png'}" alt="Victory Image">
+             <p>You defended Earth!</p>
+             <button class="button" onclick="Game.closeVictoryScreen()">Back to Menu</button>`;
+        }
+      }
+
+      function drawPlayer() {
+        ctx.save();
+        ctx.translate(width / 2, height / 2);  // center of Earth
+        ctx.rotate(playerAngle + Math.PI / 2);
+        const img = (lives < 2 && damagedImg) ? damagedImg : (playerImg || null);
+        if (img) {
+          ctx.drawImage(img, -PLAYER_RADIUS, -PLAYER_RADIUS, PLAYER_RADIUS*2, PLAYER_RADIUS*2);
+        } else {
+          // fallback
+          ctx.fillStyle = '#22d3ee';
+          ctx.beginPath();
+          ctx.arc(0, EARTH_RADIUS + PLAYER_RADIUS, PLAYER_RADIUS, 0, Math.PI*2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, width, height);
+
+        // starry bg feel
+        ctx.fillStyle = '#0a0e1a';
+        ctx.fillRect(0,0,width,height);
+
+        // Earth
+        ctx.save();
+        ctx.translate(width / 2, height / 2);
+        ctx.fillStyle = '#000080';
+        ctx.beginPath();
+        ctx.arc(0, 0, EARTH_RADIUS, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#00ff88';
+        ctx.beginPath();
+        ctx.arc(0, 0, EARTH_RADIUS - 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        drawPlayer();
+
+        // Enemies
+        enemies.forEach(enemy => {
+          ctx.save();
+          ctx.translate(enemy.x + width/2, enemy.y + height/2); // world->screen
+          if (enemyImg && enemy.name !== 'boss') {
+            ctx.drawImage(enemyImg, -enemy.radius, -enemy.radius, enemy.radius*2, enemy.radius*2);
+          } else if (enemy.name === 'boss') {
+            ctx.fillStyle = '#f00';
+            ctx.fillRect(-enemy.radius, -enemy.radius, enemy.radius*2, enemy.radius*2);
+          } else {
+            ctx.fillStyle = '#f00';
+            ctx.beginPath();
+            ctx.arc(0, 0, enemy.radius, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          if (enemy.flashTimer > 0) {
+            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+            ctx.beginPath();
+            ctx.arc(0, 0, enemy.radius, 0, Math.PI * 2);
+            ctx.fill();
+            enemy.flashTimer -= 1/60;
+          }
+          ctx.restore();
+        });
+
+        // Boss projectiles
+        bossProjectiles.forEach(bp => {
+          ctx.save();
+          ctx.translate(bp.x + width/2, bp.y + height/2);
+          if (bossProjectileImg) {
+            ctx.drawImage(bossProjectileImg, -10, -10, 20, 20);
+          } else {
+            ctx.fillStyle = '#f00';
+            ctx.fillRect(-10, -10, 20, 20);
+          }
+          ctx.restore();
+        });
+      }
+
+      function update(dt) {
+        if (!gameRunning) return;
+
+        playerSpeed *= FRICTION;
+        playerAngle += playerSpeed;
+        if (Math.abs(playerSpeed) > MAX_SPEED) {
+          playerSpeed = Math.sign(playerSpeed) * MAX_SPEED;
+        }
+
+        // Spawn enemies in world coords around (0,0); we draw offset by canvas center
+        if (Math.random() < 0.02 * DIFFICULTY_MODIFIERS[gameState.difficulty].spawnRate) {
+          const angle = Math.random() * Math.PI * 2;
+          const enemy = {
+            x: Math.cos(angle) * ENEMY_SPAWN_RADIUS,
+            y: Math.sin(angle) * ENEMY_SPAWN_RADIUS,
+            dx: -Math.cos(angle) * ENEMY_SPEED * DIFFICULTY_MODIFIERS[gameState.difficulty].enemySpeed,
+            dy: -Math.sin(angle) * ENEMY_SPEED * DIFFICULTY_MODIFIERS[gameState.difficulty].enemySpeed,
+            radius: 20,
+            health: 10 * DIFFICULTY_MODIFIERS[gameState.difficulty].enemyHealth,
+            name: 'regular',
+            flashTimer: 0,
+          };
+          if (wave % 5 === 0 && enemies.length === 0) {
+            enemy.radius = 40;
+            enemy.health = 50 * DIFFICULTY_MODIFIERS[gameState.difficulty].enemyHealth;
+            enemy.name = 'boss';
+          }
+          enemies.push(enemy);
+        }
+
+        enemies.forEach(e => { e.x += e.dx; e.y += e.dy; });
+        projectiles.forEach(p => { p.x += Math.cos(p.angle) * PROJECTILE_SPEED; p.y += Math.sin(p.angle) * PROJECTILE_SPEED; });
+        missileProjectiles.forEach(m => { m.x += Math.cos(m.angle) * MISSILE_SPEED; m.y += Math.sin(m.angle) * MISSILE_SPEED; });
+        bossProjectiles.forEach(bp => { bp.x += Math.cos(bp.angle) * BOSS_PROJECTILE_SPEED; bp.y += Math.sin(bp.angle) * BOSS_PROJECTILE_SPEED; });
+
+        explosions.forEach(e => { e.opacity -= 0.02; if (e.opacity <= 0) e.remove = true; });
+        damageNumbers.forEach(d => { d.y -= 1; d.opacity -= 0.02; if (d.opacity <= 0) d.remove = true; });
+
+        // Collisions (fixed typo: p.y - enemy.y)
+        let shotsFired = projectiles.length;
+        let shotsHit = 0;
+        const enemiesToRemove = [];
+        projectiles.forEach((p, i) => {
+          const nearby = enemies.filter(e => Math.hypot(p.x - e.x, p.y - e.y) < 50);
+          for (const enemy of nearby) {
+            const hitRadius = enemy.name === 'boss' ? BOSS_HIT_RADIUS : ENEMY_HIT_RADIUS;
+            if (Math.hypot(p.x - enemy.x, p.y - enemy.y) < hitRadius) {
+              shotsHit++;
+              if (audioManager) audioManager.playSFX(enemy.name === 'boss' ? 'bossHit' : 'hit');
+              enemy.health -= Math.ceil(p.damage || 1);
+              enemy.flashTimer = 0.1;
+              showDamageNumber(enemy.x, enemy.y, Math.ceil(p.damage || 1));
+              if (enemy.health <= 0) {
+                handleEnemyDeath(enemy);
+                enemiesToRemove.push(enemy);
+              }
+              if (!p.piercing) {
+                projectiles.splice(i, 1);
+                break;
+              }
+            }
+          }
+        });
+        if (enemiesToRemove.length) {
+          enemies = enemies.filter(e => !enemiesToRemove.includes(e));
+        }
+        deathStats.accuracy = shotsFired > 0 ? `${(shotsHit / shotsFired * 100).toFixed(1)}%` : '0%';
+      }
+
+      function isBossWave() { return wave % 5 === 0; }
+      function triggerHitPause() { /* placeholder */ }
+      function createExplosion(x, y, radius, color, opacity, isBoss) {
+        explosions.push({ x, y, radius, color, opacity, remove: false });
+      }
+      function showDamageNumber(x, y, damage) {
+        damageNumbers.push({ x, y, text: damage, opacity: 1.0, remove: false });
+      }
+      function handleEnemyDeath(enemy) {
+        score += enemy.name === 'boss' ? 100 : 10;
+        coins += enemy.name === 'boss' ? 50 : 5;
+        deathStats.enemiesKilled++;
+      }
+      function saveGameState(){ /* placeholder */ }
+      function vibrate(ms){ if (navigator.vibrate) navigator.vibrate(ms); }
+
+      // --- PUBLIC API (defined at initializeGame scope!) ---
+      function startGame() {
+        if (gameRunning) return;
+        gameRunning = true;
+        wave = 1; score = 0; lives = 3; coins = 0; missiles = 3;
+        enemies.length = 0; projectiles.length = 0; missileProjectiles.length = 0;
+        bossProjectiles.length = 0; explosions.length = 0; damageNumbers.length = 0;
+
+        const menu = document.getElementById('menu');
+        const title = document.getElementById('titleImage');
+        const hud = document.getElementById('hud');
+        const missileBtn = document.getElementById('missileButton');
+        if (menu) menu.style.display = 'none';
+        if (title) title.style.display = 'none';
+        if (hud) hud.style.display = 'flex';
+        if (missileBtn) missileBtn.style.display = 'block';
+
+        if (audioManager) audioManager.playMusic('menu', 0);
+        setTimeout(() => { if (audioManager) audioManager.playRandomLevelTrack(); }, 600);
+      }
+
+      function endGame() {
+        if (audioManager) { audioManager.stopMusic(500); audioManager.playMusic('gameover', 500); }
+        gameRunning = false;
+        const hud = document.getElementById('hud');
+        const missileBtn = document.getElementById('missileButton');
+        if (hud) hud.style.display = 'none';
+        if (missileBtn) missileBtn.style.display = 'none';
+        showDeathScreen();
+      }
+
+      function showVictoryScreen() {
+        if (audioManager) { audioManager.stopMusic(500); audioManager.playMusic('victory', 500); }
+        gameRunning = false;
+        const hud = document.getElementById('hud');
+        const missileBtn = document.getElementById('missileButton');
+        if (hud) hud.style.display = 'none';
+        if (missileBtn) missileBtn.style.display = 'none';
+        const vs = document.getElementById('victoryScreen');
+        if (vs) vs.style.display = 'flex';
+        saveGameState();
+      }
+
+      function closeVictoryScreen() {
+        if (audioManager) audioManager.playMusic('menu');
+        const vs = document.getElementById('victoryScreen');
+        const menu = document.getElementById('menu');
+        const title = document.getElementById('titleImage');
+        if (vs) vs.style.display = 'none';
+        if (menu) menu.style.display = 'block';
+        if (title) title.style.display = 'block';
+      }
+
+      function showDeathScreen() {
+        const deathScreen = document.getElementById("deathScreen");
+        const statsEl = document.getElementById("deathStats");
+        const recommendEl = document.getElementById("deathRecommendation");
+        if (!deathScreen || !statsEl || !recommendEl) return;
+        deathStats.coinsEarned = coins - deathStats.coinsEarned;
+        statsEl.innerHTML = `
+          <div class="death-stat-row"><span class="death-stat-label">Waves Survived</span><span class="death-stat-value">${deathStats.waveReached - 1}</span></div>
+          <div class="death-stat-row"><span class="death-stat-label">Enemies Killed</span><span class="death-stat-value">${deathStats.enemiesKilled}</span></div>
+          <div class="death-stat-row"><span class="death-stat-label">Final Score</span><span class="death-stat-value">${score}</span></div>
+          <div class="death-stat-row"><span class="death-stat-label">High Score</span><span class="death-stat-value">${highScore}</span></div>
+          <div class="death-stat-row"><span class="death-stat-label">Coins Earned</span><span class="death-stat-value">${deathStats.coinsEarned}</span></div>
+          <div class="death-stat-row"><span class="death-stat-label">Accuracy</span><span class="death-stat-value">${deathStats.accuracy}</span></div>
+        `;
+        let recommendation = "";
+        if (deathStats.waveReached < 5) recommendation = "Consider upgrading your weapon or shield in the shop.";
+        else if (deathStats.waveReached < 10) recommendation = "You're making progress! Try the Spread Shot or Rail Gun.";
+        else recommendation = "Impressive! You're a skilled defender.";
+        recommendEl.textContent = recommendation;
+        deathScreen.style.display = "flex";
+        saveGameState();
+      }
+
+      function closeDeathScreen() {
+        if (audioManager) audioManager.playMusic('menu');
+        const ds = document.getElementById('deathScreen');
+        const menu = document.getElementById('menu');
+        const title = document.getElementById('titleImage');
+        if (ds) ds.style.display = 'none';
+        if (menu) menu.style.display = 'block';
+        if (title) title.style.display = 'block';
+      }
+
+      function updateUI() {
+        const waveEl = document.getElementById('waveDisplay');
+        const scoreEl = document.getElementById('scoreDisplay');
+        const livesEl = document.getElementById('livesDisplay');
+        const coinsEl = document.getElementById('coinsDisplay');
+        const missilesEl = document.getElementById('missilesDisplay');
+        const shopBalanceEl = document.getElementById('shopBalance');
+        if (waveEl) waveEl.textContent = wave;
+        if (scoreEl) scoreEl.textContent = score;
+        if (livesEl) livesEl.textContent = lives;
+        if (coinsEl) coinsEl.textContent = coins;
+        if (missilesEl) missilesEl.textContent = missiles;
+        if (shopBalanceEl) shopBalanceEl.textContent = coins;
+      }
+
+      function showShop() {
+        const menu = document.getElementById('menu');
+        const death = document.getElementById('deathScreen');
+        shopReturnState = (menu && getComputedStyle(menu).display !== 'none') || (death && getComputedStyle(death).display !== 'none') ? 'menu' : 'in_game';
+        if (menu) menu.style.display = 'none';
+        if (death) death.style.display = 'none';
+        const shop = document.getElementById('shop');
+        if (shop) { shop.style.display = 'flex'; renderShop('weapons'); }
+      }
+
+      function closeShop() {
+        const shop = document.getElementById('shop');
+        if (shop) shop.style.display = 'none';
+        if (shopReturnState === 'in_game') {
+          const wt = document.getElementById('waveTransition');
+          if (wt) wt.style.display = 'flex';
+        } else {
+          const menu = document.getElementById('menu');
+          if (menu) menu.style.display = 'block';
+        }
+      }
+
+      function showInGameShop() {
+        shopReturnState = 'in_game';
+        const wt = document.getElementById('waveTransition');
+        if (wt) wt.style.display = 'none';
+        showShop();
+      }
+
+      function showTutorial() {
+        const menu = document.getElementById('menu');
+        const tut = document.getElementById('tutorial');
+        if (menu) menu.style.display = 'none';
+        if (tut) tut.style.display = 'flex';
+      }
+
+      function closeTutorial() {
+        const tut = document.getElementById('tutorial');
+        const menu = document.getElementById('menu');
+        if (tut) tut.style.display = 'none';
+        if (menu) menu.style.display = 'block';
+      }
+
+      function switchTab(tabName, btnEl) {
+        document.querySelectorAll(".tab").forEach(tab => tab.classList.remove("active"));
+        if (btnEl) btnEl.classList.add("active");
+        renderShop(tabName);
+      }
+
+      function renderShop(category) {
+        const shopItemsEl = document.getElementById("shopItems");
+        if (!shopItemsEl) return;
+        shopItemsEl.innerHTML = "";
+        const equipmentKey = category === "weapons" ? "weapon" : category === "shields" ? "shield" : "system";
+        const items = shopItems[category] || [];
+        items.forEach(item => {
+          const owned = gameState.owned[category].includes(item.id);
+          const equipped = gameState.equipment[equipmentKey] === item.id;
+          const canAfford = coins >= item.cost;
+          const card = document.createElement("div");
+          card.className = `item-card ${equipped ? "equipped" : ""}`;
+          card.innerHTML = `
+            <img src="${item.sprite}" class="item-sprite" alt="${item.name}" onerror="this.style.display='none'">
+            <div class="item-name">${item.name}</div>
+            <div class="item-desc">${item.desc}</div>
+            <div class="item-price">${item.cost > 0 ? `💰 ${item.cost}` : "Free"}</div>
+            ${equipped ? '<div class="item-equipped-badge">Equipped</div>' : ""}
+          `;
+          if (!owned && item.cost > 0) {
+            const btn = document.createElement("button");
+            btn.className = "button";
+            btn.textContent = canAfford ? "Buy" : "Not enough coins";
+            btn.disabled = !canAfford;
+            btn.onclick = () => buyItem(category, item.id);
+            card.appendChild(btn);
+          } else if (!equipped) {
+            const btn = document.createElement("button");
+            btn.className = "button";
+            btn.textContent = "Equip";
+            btn.onclick = () => equipItem(category, item.id);
+            card.appendChild(btn);
+          }
+          shopItemsEl.appendChild(card);
+        });
+      }
+
+      function buyItem(category, itemId) {
+        const item = (shopItems[category] || []).find(i => i.id === itemId);
+        if (!item || coins < item.cost) return;
+        coins -= item.cost;
+        if (audioManager) audioManager.playSFX("powerup");
+        gameState.owned[category].push(itemId);
+        updateUI();
+        saveGameState();
+        renderShop(category);
+        vibrate(30);
+      }
+
+      function equipItem(category, itemId) {
+        const equipmentKey = category === "weapons" ? "weapon" : category === "shields" ? "shield" : "system";
+        gameState.equipment[equipmentKey] = itemId;
+        if (category === "shields") {
+          const shield = (shopItems.shields || []).find(s => s.id === itemId);
+          if (shield) {
+            gameState.maxShieldHealth = shield.health || 0;
+            gameState.shieldHealth = shield.health || 0;
+          }
+        }
+        saveGameState();
+        renderShop(category);
+        vibrate(20);
+      }
+
+      function startWave() {
+        if (audioManager) {
+          audioManager.stopMusic(500);
+          setTimeout(() => {
+            if (wave === 20) {
+              audioManager.playMusic('boss20', 500);
+            } else if (isBossWave()) {
+              const bossTracks = ['boss1', 'boss2'];
+              const t = bossTracks[Math.floor(Math.random() * bossTracks.length)];
+              audioManager.playMusic(t, 500);
+            } else {
+              audioManager.playRandomLevelTrack();
+            }
+          }, 600);
+        }
+      }
+
+      // --- Main loop always runs (draws background & ship even before Start) ---
+      function gameLoop(time = 0) {
+        const dt = (time - lastTime) / 1000 || 0;
+        lastTime = time;
+        if (gameRunning) update(dt);
+        draw();
+        requestAnimationFrame(gameLoop);
+      }
+
+      // Kick things off
+      init();
+      requestAnimationFrame(gameLoop);
+
+      // Public API
+      return {
+        startGame,
+        showShop,
+        closeShop,
+        switchTab,           // call as onclick="Game.switchTab('weapons', this)"
+        launchMissile: () => {},
+        closeDeathScreen,
+        closeVictoryScreen,
+        resumeGame: () => {},
+        showInGameShop,
+        showTutorial,
+        closeTutorial,
+        setDifficulty: (diff) => { gameState.difficulty = diff; }
+      };
+    }
+
+    // Boot
+    window.addEventListener('load', () => {
+      window.Game = initializeGame();
+    });
+  </script>
 </body>
 </html>
