@@ -205,7 +205,7 @@
         }
         
         #missileButton::before {
-            content: '\1F680'; /* Rocket emoji */
+            content: 'F680'; /* Rocket emoji */
             font-size: 1.5rem;
             line-height: 1;
         }
@@ -382,7 +382,7 @@
         }
         
         .shop-balance::before {
-            content: '\1F4B0'; /* Money Bag Emoji */
+            content: 'F4B0'; /* Money Bag Emoji */
             font-size: 1.2em;
         }
 
@@ -711,11 +711,11 @@
         }
         
         #muteBtn::before {
-            content: '\1F50A'; /* Speaker High Volume emoji */
+            content: 'F50A'; /* Speaker High Volume emoji */
         }
 
         #muteBtn.muted::before {
-            content: '\1F507'; /* Muted Speaker emoji */
+            content: 'F507'; /* Muted Speaker emoji */
         }
         
         .audio-btn:hover {
@@ -760,14 +760,6 @@
     </div>
 
     <canvas id="gameCanvas"></canvas>
-
-  <!-- Tap-to-Start overlay (added, non-destructive) -->
-  <div id="tapToStart" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;gap:12px;background:rgba(0,0,0,.45);z-index:9999;">
-    <button id="startBtn" style="padding:14px 22px;border:0;border-radius:12px;background:#11b369;color:#fff;font:700 16px system-ui;box-shadow:0 6px 18px rgba(0,0,0,.25);cursor:pointer;">
-      Tap to Start
-    </button>
-  </div>
-
     
     <div id="fpsCounter" style="position: absolute; top: 10px; right: 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #0f0; background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 4px; z-index: 1000; display: none;">FPS: 60</div>
     
@@ -2412,23 +2404,7 @@
                     {name: "tank", health: 4, speed: 0.5, coins: 25, sprites: ["assets/IMG_1508.jpg", "assets/IMG_1515.jpg", "assets/IMG_1517.jpg"]}
                 ];
                 const bossDataPool = [
-                    { path: "assets/IMG_1510.jpg", rotationOffset: 
-      
-      // --- Hi-DPI fit: canvas grows, game units stay constant ---
-      function fitCanvas() {
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        const cssW = window.innerWidth;
-        const cssH = window.innerHeight;
-        canvas.style.width  = cssW + 'px';
-        canvas.style.height = cssH + 'px';
-        canvas.width  = Math.floor(cssW * dpr);
-        canvas.height = Math.floor(cssH * dpr);
-        // draw in CSS pixels so radii don't change with DPR
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      }
-      window.addEventListener('resize', fitCanvas, { passive: true });
-      fitCanvas();
-Math.PI },
+                    { path: "assets/IMG_1510.jpg", rotationOffset: Math.PI },
                     { path: "assets/IMG_1511.jpg", rotationOffset: Math.PI },
                     { path: "assets/IMG_1513.jpg", rotationOffset: Math.PI / 2 }
                 ];
@@ -3389,7 +3365,7 @@ Math.PI },
             init();
             
             return {
-                kickAudio, startGame,
+                startGame,
                 showShop,
                 closeShop,
                 switchTab,
@@ -3409,27 +3385,26 @@ Math.PI },
         });
     </script>
 
-
 <script>
-  // Wire common start buttons to start + audio kick
-  function wireStartButtons() {
-    const selectors = ['#startBtn','#playButton','#menuStart','#beginBtn','#start','#play','.start','.play'];
-    const act = () => {
-      window.Game?.startGame?.('normal');
-      window.Game?.kickAudio?.();
-      const o = document.getElementById('tapToStart');
-      if (o) o.style.display = 'none';
-    };
-    selectors.forEach(sel => document.querySelectorAll(sel).forEach(btn => btn.addEventListener('click', act)));
-  }
   window.addEventListener('load', () => {
+    try { window.Game = initializeGame(); } catch (e) { console.error('Initialize error:', e); }
+    // Wire common start buttons to start + audio kick
+    function wireStartButtons() {
+      const selectors = ['#startBtn','#playButton','#menuStart','#beginBtn','#start','#play','.start','.play'];
+      const act = () => {
+        window.Game?.startGame?.('normal');
+        window.Game?.kickAudio?.();
+        const o = document.getElementById('tapToStart');
+        if (o) o.style.display = 'none';
+      };
+      selectors.forEach(sel => document.querySelectorAll(sel).forEach(btn => btn.addEventListener('click', act)));
+    }
     wireStartButtons();
-    const kick = () => { wireStartButtons(); window.Game?.kickAudio?.(); };
-    window.addEventListener('pointerdown', kick, { once:true });
-    window.addEventListener('keydown',      kick, { once:true });
+    const gestureKick = () => { wireStartButtons(); window.Game?.kickAudio?.(); };
+    window.addEventListener('pointerdown', gestureKick, { once:true });
+    window.addEventListener('keydown',      gestureKick, { once:true });
   });
 </script>
-
 </body>
 </html>
 ```
