@@ -1,1289 +1,964 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Earth Defender</title>
-  <link rel="icon" href="assets/gametitle.jpg">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@500;600&display=swap');
 
     :root{
-      --font-primary:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+      --font-primary:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       --font-display:'Space Grotesk','Inter',sans-serif;
       --font-mono:'JetBrains Mono','Courier New',monospace;
-      --text-xs:.65rem;--text-sm:.75rem;--text-base:.9rem;--text-lg:1.1rem;--text-xl:1.3rem;--text-2xl:1.6rem;--text-3xl:2rem;
-      --leading-tight:1.2;--leading-normal:1.4;--leading-relaxed:1.6;
-      --tracking-tight:-.02em;--tracking-normal:0;--tracking-wide:.025em;
-      --color-bg-base:#0a0e1a;--color-bg-elevated:#121825;--color-bg-overlay:#1a2332;
-      --color-accent:#22d3ee;--color-accent-hover:#06b6d4;
-      --color-success:#10b981;--color-warning:#f59e0b;--color-danger:#ef4444;
-      --color-text-primary:#f8fafc;--color-text-secondary:#cbd5e1;--color-text-tertiary:#64748b;
-      --color-border:rgba(255,255,255,.1);
-      --space-1:.25rem;--space-2:.5rem;--space-3:.75rem;--space-4:1rem;--space-5:1.5rem;--space-6:2rem;--space-8:3rem;
-      --shadow-sm:0 1px 2px rgba(0,0,0,.5);--shadow-md:0 4px 6px rgba(0,0,0,.4);--shadow-lg:0 10px 15px rgba(0,0,0,.3);--shadow-xl:0 20px 25px rgba(0,0,0,.25);
-      --radius-sm:4px;--radius-md:8px;--radius-lg:12px;--radius-full:9999px
+
+      --bg:#0a0e1a;
+      --bg-2:#121825;
+      --bg-3:#1a2332;
+      --accent:#22d3ee;
+      --accent-2:#06b6d4;
+      --good:#10b981;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+      --text:#f8fafc;
+      --text-2:#cbd5e1;
+      --text-3:#64748b;
+      --brd:rgba(255,255,255,.1);
+
+      --r-sm:6px; --r-md:10px; --r-lg:14px; --r-full:9999px;
+
+      --z-hud:100; --z-menu:200; --z-title:201; --z-wave:250; --z-modal:400; --z-audio:1000;
     }
-    *{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
-    html,body{width:100%;height:100%;height:100dvh;position:fixed;overflow:hidden}
-    body{background:var(--color-bg-base);font-family:var(--font-primary);color:var(--color-text-primary);touch-action:none;overscroll-behavior:none;-webkit-user-select:none}
 
-    #gameCanvas{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;height:100dvh;background:var(--color-bg-base);touch-action:none;image-rendering:pixelated}
+    *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent}
+    html,body{height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:var(--font-primary)}
 
+    /* CANVAS */
+    #gameCanvas{position:fixed; inset:0; width:100vw; height:100vh; image-rendering:pixelated; display:block; background:var(--bg)}
+
+    /* TITLE */
     #titleImage{
-      position:absolute;top:25%;left:50%;transform:translate(-50%,-50%);
-      width:90%;max-width:400px;z-index:201;image-rendering:auto;mix-blend-mode:lighten;opacity:.95
+      position:absolute; top:25%; left:50%; transform:translate(-50%,-50%);
+      width:min(90vw,400px); z-index:var(--z-title); mix-blend-mode:lighten; opacity:.95
     }
 
-    #hud{position:fixed;top:10px;left:10px;right:10px;padding:var(--space-3);display:flex;justify-content:space-between;z-index:100;pointer-events:none;gap:var(--space-3)}
-    .hud-group{background:rgba(18,24,37,.85);backdrop-filter:blur(8px);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);display:flex;gap:var(--space-5);box-shadow:var(--shadow-md);flex:1;justify-content:space-between}
-    .hud-stat{display:flex;flex-direction:column;gap:var(--space-1);flex:1;min-width:0;align-items:center;text-align:center}
-    .hud-label{font-size:var(--text-xs);font-weight:500;color:var(--color-text-tertiary);white-space:nowrap}
-    .hud-value{font-family:var(--font-mono);font-size:var(--text-lg);font-weight:600;color:var(--color-text-primary);font-variant-numeric:tabular-nums}
+    /* HUD */
+    #hud{position:fixed; top:10px; left:10px; right:10px; display:flex; gap:10px; z-index:var(--z-hud); pointer-events:none}
+    .hud-group{pointer-events:auto; flex:1; display:flex; gap:18px; justify-content:space-between;
+      background:rgba(18,24,37,.85); border:1px solid var(--brd); border-radius:var(--r-md); padding:10px 14px}
+    .hud-stat{display:flex; flex-direction:column; align-items:center; gap:2px; min-width:0}
+    .hud-label{font-size:11px; color:var(--text-3)}
+    .hud-value{font-family:var(--font-mono); font-weight:700}
 
-    #comboCounter{position:absolute;top:75%;left:50%;transform:translate(-50%,-50%);font-family:var(--font-display);font-weight:700;color:var(--color-warning);text-shadow:0 0 20px rgba(245,158,11,.8);pointer-events:none;z-index:150;opacity:0;transition:opacity .2s,font-size .2s}
+    /* COMBO */
+    #comboCounter{position:absolute; top:72%; left:50%; transform:translateX(-50%);
+      font-family:var(--font-display); font-weight:700; color:var(--warn); text-shadow:0 0 20px rgba(245,158,11,.8);
+      z-index:150; opacity:0; transition:.2s}
 
+    /* MISSILE BTN */
     #missileButton{
-      width:70px;height:70px;position:fixed;bottom:30px;right:20px;background:var(--color-danger);color:var(--color-text-primary);
-      border:2px solid rgba(239,68,68,.5);border-radius:var(--radius-full);font-size:var(--text-sm);font-weight:600;cursor:pointer;z-index:100;transition:all .2s;box-shadow:var(--shadow-lg);
-      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-1)
+      width:72px; height:72px; position:fixed; bottom:28px; right:18px; z-index:var(--z-hud);
+      border-radius:var(--r-full); border:2px solid rgba(239,68,68,.5); background:var(--bad);
+      color:#fff; font-weight:700; cursor:pointer; display:none; align-items:center; justify-content:center; gap:4px
     }
-    /* emoji content fixes */
-    #missileButton::before{content:'🚀';font-size:1.5rem;line-height:1}
-    #missileButton:hover{background:#dc2626;transform:scale(1.05)}
-    #missileButton:active{transform:scale(.95)}
+    #missileButton::before{content:'🚀'; font-size:22px; line-height:1}
+    #missileButton:hover{transform:scale(1.04)}
+    #missileButton:active{transform:scale(.96)}
 
-    /* keep menu in lower quadrant (below Earth) */
+    /* MENU (anchored to lower quadrant) */
     #menu{
-      position:absolute;left:50%;transform:translateX(-50%);bottom:6%;
-      text-align:center;z-index:200;width:90%;max-width:500px;display:flex;flex-direction:column;gap:var(--space-2)
+      position:absolute; left:50%; bottom:6%; transform:translateX(-50%);
+      width:90%; max-width:520px; display:flex; flex-direction:column; gap:10px; align-items:center;
+      z-index:var(--z-menu); text-align:center
     }
-    #menu .button{width:200px;margin:0 auto}
-    #menu .difficulty-buttons{margin-top:var(--space-2);display:flex;justify-content:center;gap:8px}
-    #menu .difficulty-buttons .button{width:80px;padding:10px 12px;font-size:var(--text-sm)}
+    .button{background:var(--accent); color:#03222a; border:none; border-radius:var(--r-md);
+      padding:10px 18px; font-weight:700; cursor:pointer}
+    .button:hover{background:var(--accent-2)}
+    .button-secondary{background:var(--bg-2); color:var(--text); border:1px solid var(--brd)}
+    .button-secondary:hover{border-color:var(--accent)}
 
-    .button{font-family:var(--font-primary);font-size:var(--text-base);font-weight:600;letter-spacing:var(--tracking-wide);background:var(--color-accent);color:var(--color-bg-base);border:none;border-radius:var(--radius-md);padding:var(--space-3) var(--space-5);cursor:pointer;transition:all .2s;box-shadow:var(--shadow-md)}
-    .button:hover{background:var(--color-accent-hover);box-shadow:var(--shadow-lg)}
-    .button-secondary{background:var(--color-bg-elevated);color:var(--color-text-primary);border:1px solid var(--color-border)}
-    .button-secondary:hover{background:var(--color-bg-overlay);border-color:var(--color-accent)}
+    .difficulty-buttons{display:flex; gap:8px; margin-top:6px}
+    .difficulty-buttons .button{min-width:88px}
 
+    /* INTERSTITIALS */
     .interstitial-screen{
-      position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:calc(100% - 2 * var(--space-6));max-width:600px;background:var(--color-bg-elevated);
-      border-radius:var(--radius-lg);padding:var(--space-6);display:none;flex-direction:column;gap:var(--space-5);z-index:400;box-shadow:var(--shadow-xl);text-align:center;max-height:85vh;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;-ms-overflow-style:none
+      position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+      width:calc(100% - 48px); max-width:640px; background:var(--bg-2); border-radius:var(--r-lg);
+      border:1px solid var(--brd); padding:24px; display:none; flex-direction:column; gap:16px;
+      z-index:var(--z-modal); box-shadow:0 20px 30px rgba(0,0,0,.35)
     }
-    #shop{padding:var(--space-5)}
-    .interstitial-screen::-webkit-scrollbar{display:none}
-    .interstitial-screen h2{font-family:var(--font-display);font-size:var(--text-2xl);font-weight:600;color:var(--color-accent)}
-    .interstitial-screen p{font-size:var(--text-base);color:var(--color-text-secondary);margin-top:calc(var(--space-2)* -1);margin-bottom:var(--space-2);text-align:left;line-height:var(--leading-relaxed)}
-    #waveChoice{border:2px solid var(--color-accent)}
-    #waveTransition{max-width:400px}
-    #tutorial{text-align:left}
-    #tutorial p{text-align:left}
-    #tutorial h2{text-align:center}
-    #tutorial .button-container{text-align:center}
+    .interstitial-screen h2{font-family:var(--font-display); color:var(--accent)}
 
-    .shop-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-5);padding-bottom:var(--space-4);border-bottom:1px solid var(--color-border);flex-wrap:wrap;gap:var(--space-3)}
-    .shop-header h2{font-family:var(--font-display);font-size:var(--text-2xl);font-weight:600;letter-spacing:var(--tracking-tight)}
-    .shop-header-right{display:flex;align-items:center;gap:var(--space-4);margin-left:auto}
-    .shop-balance{font-family:var(--font-mono);font-size:var(--text-xl);font-weight:600;color:var(--color-warning);font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:var(--space-2)}
-    .shop-balance::before{content:'💰';font-size:1.2em} /* emoji fix */
+    /* SHOP */
+    #shop{padding:24px}
+    .shop-header{display:flex; align-items:center; justify-content:space-between; gap:12px; border-bottom:1px solid var(--brd); padding-bottom:14px}
+    .shop-balance{font-family:var(--font-mono); font-weight:700; color:var(--warn); display:flex; align-items:center; gap:8px}
+    .shop-balance::before{content:'💰'}
+    .shop-tabs{display:flex; gap:8px; margin:14px 0}
+    .tab{padding:8px 14px; border:1px solid var(--brd); border-radius:var(--r-md); background:transparent; color:var(--text-2); cursor:pointer}
+    .tab.active{border-color:var(--accent); color:var(--accent); background:rgba(34,211,238,.08)}
+    .shop-items{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; max-height:50vh; overflow:auto}
+    .item-card{background:var(--bg-3); border:1px solid var(--brd); border-radius:var(--r-md); padding:10px; text-align:center}
+    .item-card.equipped{border-color:var(--good); box-shadow:0 0 0 2px rgba(16,185,129,.25)}
+    .item-sprite{width:100px; height:100px; object-fit:contain; image-rendering:pixelated; background:#000; border-radius:6px; margin:auto}
 
-    .shop-tabs{display:flex;gap:var(--space-2);margin-bottom:var(--space-5)}
-    .tab{font-size:var(--text-sm);font-weight:500;padding:var(--space-2) var(--space-4);background:transparent;color:var(--color-text-secondary);border:1px solid var(--color-border);border-radius:var(--radius-md);cursor:pointer;transition:all .2s}
-    .tab.active{background:rgba(34,211,238,.1);color:var(--color-accent);border-color:var(--color-accent)}
+    /* WAVE CHOICE/TRANSITION */
+    .choice-cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px}
 
-    .shop-items{flex:1;overflow-y:auto;overflow-x:hidden;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:var(--space-4);scrollbar-width:none;-ms-overflow-style:none}
-    .shop-items::-webkit-scrollbar{display:none}
+    /* DEATH */
+    #deathScreen{border:2px solid var(--bad)}
+    #deathScreen h2{color:var(--bad)}
+    .death-stats{display:flex; flex-direction:column; gap:8px}
+    .death-stat-row{display:flex; justify-content:space-between; border-bottom:1px solid var(--brd); padding:4px 0}
 
-    .item-card{background:var(--color-bg-overlay);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:var(--space-3);display:flex;flex-direction:column;gap:var(--space-2);transition:all .2s;text-align:center}
-    .item-card:hover{border-color:var(--color-accent);box-shadow:var(--shadow-md)}
-    .item-card.equipped{border-color:var(--color-success);background:rgba(16,185,129,.05);box-shadow:0 0 0 2px rgba(16,185,129,.3)}
-    .item-sprite{width:100px;height:100px;margin:0 auto;object-fit:contain;image-rendering:pixelated;background:#000;padding:8px;border-radius:4px}
-    .item-name{font-size:var(--text-base);font-weight:600;color:var(--color-accent);text-align:center}
-    .item-desc{font-size:.7rem;line-height:var(--leading-normal);color:var(--color-text-secondary);text-align:center}
-    .item-price{font-family:var(--font-mono);font-size:var(--text-sm);font-weight:600;color:var(--color-warning);text-align:center;font-variant-numeric:tabular-nums}
-    .item-equipped-badge{font-size:var(--text-xs);font-weight:600;color:var(--color-success);text-align:center}
+    /* VICTORY – album art keeps aspect ratio */
+    #victoryScreen{border:2px solid var(--good)}
+    .album-art{
+      display:block; width:min(90vw,900px); height:auto; /* preserves rectangle */
+      border-radius:10px; margin:10px auto; box-shadow:0 10px 24px rgba(0,0,0,.4)
+    }
+    .credits-text{text-align:center}
 
-    .choice-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--space-4)}
-    .choice-card{background:var(--color-bg-overlay);border:2px solid var(--color-border);border-radius:var(--radius-md);padding:var(--space-5);cursor:pointer;transition:all .2s;display:flex;flex-direction:column;gap:var(--space-3)}
-    .choice-card:hover{border-color:var(--color-accent);box-shadow:var(--shadow-lg);background:rgba(34,211,238,.05)}
-    .choice-card-name{font-size:var(--text-lg);font-weight:600;color:var(--color-accent);text-align:center}
-    .choice-card-desc{font-size:var(--text-sm);line-height:var(--leading-relaxed);color:var(--color-text-secondary);text-align:left}
-    .choice-card-effect{font-size:var(--text-base);font-weight:600;color:var(--color-success);text-align:center;padding:var(--space-2);background:rgba(16,185,129,.1);border-radius:var(--radius-sm)}
-
-    #deathScreen{max-width:500px;border:2px solid var(--color-danger)}
-    #deathScreen h2{font-family:var(--font-display);font-size:var(--text-2xl);font-weight:600;color:var(--color-danger);text-align:center}
-    .death-stats{display:flex;flex-direction:column;gap:var(--space-3)}
-    .death-stat-row{display:flex;justify-content:space-between;font-size:var(--text-base);padding:var(--space-2) 0;border-bottom:1px solid var(--color-border)}
-    .death-stat-label{color:var(--color-text-secondary)}
-    .death-stat-value{font-family:var(--font-mono);font-weight:600;color:var(--color-text-primary);font-variant-numeric:tabular-nums}
-    .death-recommendation{background:rgba(34,211,238,.1);border:1px solid var(--color-accent);border-radius:var(--radius-md);padding:var(--space-4);font-size:var(--text-sm);line-height:var(--leading-relaxed);color:var(--color-text-secondary)}
-
-    #victoryScreen{border:2px solid var(--color-success)}
-    #victoryScreen h2{font-family:var(--font-display);font-size:var(--text-3xl);font-weight:700;color:var(--color-success);text-align:center}
-    /* album art fix: keep native aspect ratio, center, large */
-    .album-art{display:block;width:min(900px,90vw);height:auto;border-radius:var(--radius-md);box-shadow:var(--shadow-lg);margin:var(--space-4) auto}
-
-    .credits-text{text-align:center;font-size:var(--text-lg);line-height:var(--leading-relaxed);color:var(--color-text-primary)}
-    .credits-text a{color:var(--color-accent);text-decoration:none;transition:color .2s}
-    .credits-text a:hover{color:var(--color-accent-hover);text-decoration:underline}
-
-    .wave-modifier-banner{position:absolute;top:20%;left:50%;transform:translateX(-50%);background:rgba(18,24,37,.95);border:2px solid var(--color-warning);border-radius:var(--radius-lg);padding:var(--space-5) var(--space-6);z-index:250;box-shadow:var(--shadow-xl);animation:slideDown .5s ease-out}
-    @keyframes slideDown{from{transform:translateX(-50%) translateY(-100px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
-    .wave-modifier-title{font-family:var(--font-display);font-size:var(--text-xl);font-weight:700;color:var(--color-warning);text-align:center;margin-bottom:var(--space-2)}
-    .wave-modifier-desc{font-size:var(--text-sm);color:var(--color-text-secondary);text-align:center}
-
-    .damage-number{position:absolute;font-family:var(--font-display);font-weight:700;font-size:var(--text-lg);color:var(--color-danger);text-shadow:0 0 10px rgba(239,68,68,.8);pointer-events:none;z-index:200;animation:floatUp 1s ease-out forwards}
-    @keyframes floatUp{to{transform:translateY(-50px);opacity:0}}
-
-    #audioControls{position:absolute;top:var(--space-4);right:var(--space-4);display:flex;gap:var(--space-2);z-index:1000}
-    .audio-btn{width:40px;height:40px;border-radius:var(--radius-full);background:var(--color-bg-elevated);border:1px solid var(--color-border);color:var(--color-text-primary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:var(--text-lg);transition:all .2s ease}
-    .audio-btn::before{font-family:var(--font-primary)}
-    #muteBtn::before{content:'🔊'}          /* emoji fix */
-    #muteBtn.muted::before{content:'🔇'}    /* emoji fix */
-    .audio-btn:hover{background:var(--color-bg-overlay);border-color:var(--color-accent)}
-    .audio-btn.muted{color:var(--color-danger);background:rgba(239,68,68,.1)}
+    /* AUDIO BTN */
+    #audioControls{position:absolute; top:12px; right:12px; display:flex; gap:8px; z-index:var(--z-audio)}
+    .audio-btn{width:42px; height:42px; border-radius:var(--r-full); background:var(--bg-2); border:1px solid var(--brd);
+      display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:20px}
+    #muteBtn::before{content:'🔊'}
+    #muteBtn.muted::before{content:'🔇'}
+    .audio-btn.muted{background:rgba(239,68,68,.12); color:var(--bad); border-color:rgba(239,68,68,.35)}
 
     @media (max-width:768px){
-      .hud-group{padding:var(--space-2) var(--space-3);gap:var(--space-3)}
-      .hud-label{font-size:.625rem}
-      .hud-value{font-size:var(--text-base)}
-      .choice-cards{grid-template-columns:1fr}
-      #shop{padding:var(--space-4)}
-      .shop-header h2{font-size:var(--text-xl)}
-      .shop-balance{font-size:var(--text-lg)}
+      #hud{gap:8px}
+      .hud-group{gap:12px; padding:8px 10px}
     }
   </style>
 </head>
 <body>
-  <!-- audio controls -->
+  <!-- Audio Controls -->
   <div id="audioControls" style="display:flex;">
-    <button class="audio-btn" id="muteBtn" onclick="toggleAudio()" title="Toggle Sound"></button>
+    <button id="muteBtn" class="audio-btn" title="Toggle Sound"></button>
   </div>
 
+  <!-- Canvas -->
   <canvas id="gameCanvas"></canvas>
+  <img id="titleImage" src="assets/gametitle.jpg" alt="Earth Defender" />
 
-  <div id="fpsCounter" style="position:absolute;top:10px;right:10px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#0f0;background:rgba(0,0,0,.7);padding:4px 8px;border-radius:4px;z-index:1000;display:none;">FPS: 60</div>
-
-  <img id="titleImage" src="assets/gametitle.jpg" alt="Earth Defender" style="display:block;">
-
-  <div id="hud">
+  <!-- HUD -->
+  <div id="hud" style="display:none;">
     <div class="hud-group">
-      <div class="hud-stat"><span class="hud-label">Wave</span><span class="hud-value" id="waveDisplay">1</span></div>
-      <div class="hud-stat"><span class="hud-label">Score</span><span class="hud-value" id="scoreDisplay">0</span></div>
+      <div class="hud-stat"><span class="hud-label">Wave</span><span id="waveDisplay" class="hud-value">1</span></div>
+      <div class="hud-stat"><span class="hud-label">Score</span><span id="scoreDisplay" class="hud-value">0</span></div>
     </div>
     <div class="hud-group">
-      <div class="hud-stat"><span class="hud-label">Lives</span><span class="hud-value" id="livesDisplay">3</span></div>
-      <div class="hud-stat"><span class="hud-label">Coins</span><span class="hud-value" id="coinsDisplay">100</span></div>
-      <div class="hud-stat"><span class="hud-label">Missiles</span><span class="hud-value" id="missilesDisplay">3</span></div>
+      <div class="hud-stat"><span class="hud-label">Lives</span><span id="livesDisplay" class="hud-value">3</span></div>
+      <div class="hud-stat"><span class="hud-label">Coins</span><span id="coinsDisplay" class="hud-value">100</span></div>
+      <div class="hud-stat"><span class="hud-label">Missiles</span><span id="missilesDisplay" class="hud-value">3</span></div>
     </div>
   </div>
 
   <div id="comboCounter"></div>
-  <button id="missileButton" onclick="if(Game) Game.launchMissile()">Fire</button>
+  <button id="missileButton" onclick="window.Game && Game.launchMissile()">Fire</button>
 
-  <!-- main menu (anchored bottom) -->
+  <!-- Main Menu (lower quadrant) -->
   <div id="menu">
-    <button class="button" onclick="if(Game) Game.startGame('normal')">Start</button>
-    <button class="button button-secondary" onclick="if(Game) Game.showShop()">Shop</button>
-    <button class="button button-secondary" onclick="if(Game) Game.showTutorial()">Help</button>
+    <button class="button" onclick="window.Game && Game.startGame('normal')">Start</button>
+    <button class="button button-secondary" onclick="window.Game && Game.showShop()">Shop</button>
+    <button class="button button-secondary" onclick="window.Game && Game.showTutorial()">Help</button>
     <div class="difficulty-buttons">
-      <button class="button" onclick="if(Game) Game.startGame('easy')">Easy</button>
-      <button class="button" onclick="if(Game) Game.startGame('normal')">Normal</button>
-      <button class="button" onclick="if(Game) Game.startGame('hard')">Hard</button>
+      <button class="button" onclick="window.Game && Game.startGame('easy')">Easy</button>
+      <button class="button" onclick="window.Game && Game.startGame('normal')">Normal</button>
+      <button class="button" onclick="window.Game && Game.startGame('hard')">Hard</button>
     </div>
   </div>
 
-  <!-- shop -->
+  <!-- Shop -->
   <div id="shop" class="interstitial-screen">
     <div class="shop-header">
       <h2>Upgrades</h2>
-      <div class="shop-header-right">
-        <span class="shop-balance" id="shopBalance">100</span>
-        <button class="button button-secondary" onclick="if(Game) Game.closeShop()">Close</button>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span id="shopBalance" class="shop-balance">100</span>
+        <button class="button button-secondary" onclick="window.Game && Game.closeShop()">Close</button>
       </div>
     </div>
     <div class="shop-tabs">
-      <button class="tab active" onclick="if(Game) Game.switchTab('weapons', this)">Weapons</button>
-      <button class="tab" onclick="if(Game) Game.switchTab('shields', this)">Shields</button>
-      <button class="tab" onclick="if(Game) Game.switchTab('systems', this)">Systems</button>
+      <button class="tab active" onclick="window.Game && Game.switchTab('weapons', event)">Weapons</button>
+      <button class="tab" onclick="window.Game && Game.switchTab('shields', event)">Shields</button>
+      <button class="tab" onclick="window.Game && Game.switchTab('systems', event)">Systems</button>
     </div>
     <div id="shopItems" class="shop-items"></div>
   </div>
 
-  <!-- wave choice -->
+  <!-- Wave choice -->
   <div id="waveChoice" class="interstitial-screen">
     <h2>Choose Your Upgrade</h2>
     <p>Pick one to power up for the next wave.</p>
     <div id="choiceCards" class="choice-cards"></div>
   </div>
 
-  <!-- between waves -->
+  <!-- Wave transition -->
   <div id="waveTransition" class="interstitial-screen">
     <h2>Wave Complete!</h2>
     <p>Prepare for the next assault.</p>
-    <div>
-      <button class="button" onclick="if(Game) Game.resumeGame()">Next Wave</button>
-      <button class="button button-secondary" onclick="if(Game) Game.showInGameShop()">Visit Shop</button>
+    <div style="display:flex; gap:8px; justify-content:center;">
+      <button class="button" onclick="window.Game && Game.resumeGame()">Next Wave</button>
+      <button class="button button-secondary" onclick="window.Game && Game.showInGameShop()">Visit Shop</button>
     </div>
   </div>
 
-  <!-- tutorial -->
+  <!-- Tutorial -->
   <div id="tutorial" class="interstitial-screen">
     <h2>How to Play</h2>
     <p>
       <strong>Objective:</strong> Defend Earth by destroying all incoming enemy ships before they reach the planet.<br><br>
-      <strong>Controls:</strong> Your ship automatically orbits Earth. Use your mouse on desktop or swipe vertically on mobile to rotate your ship. Firing is automatic.<br><br>
-      <strong>Missiles:</strong> Tap the missile button to launch a powerful, homing missile. You get more between waves.<br><br>
-      <strong>Upgrades:</strong> After each wave, you get to choose one of three temporary upgrades. Use coins earned to buy permanent upgrades in the shop.
+      <strong>Controls:</strong> Your ship orbits Earth. Move the mouse (desktop) or swipe vertically (mobile) to rotate your ship. Firing is automatic.<br><br>
+      <strong>Missiles:</strong> Tap the missile button to launch a powerful, homing missile.<br><br>
+      <strong>Upgrades:</strong> After each wave, choose a temporary upgrade. Spend coins in the shop for permanent upgrades.
     </p>
-    <div class="button-container">
-      <button class="button" onclick="if(Game) Game.closeTutorial()">Back to Menu</button>
+    <div style="text-align:center;">
+      <button class="button" onclick="window.Game && Game.closeTutorial()">Back to Menu</button>
     </div>
   </div>
 
-  <!-- pause -->
-  <div id="pauseScreen" class="interstitial-screen" style="display:none;max-width:400px;">
+  <!-- Pause -->
+  <div id="pauseScreen" class="interstitial-screen" style="max-width:420px;">
     <h2>Paused</h2>
     <p style="text-align:center;">Press ESC to resume</p>
   </div>
 
-  <!-- death -->
+  <!-- Death -->
   <div id="deathScreen" class="interstitial-screen">
     <h2>Mission Failed</h2>
     <div id="deathStats" class="death-stats"></div>
-    <div class="death-recommendation" id="deathRecommendation"></div>
-    <button class="button" onclick="if(Game) Game.closeDeathScreen()">Continue</button>
+    <div id="deathRecommendation" class="death-recommendation"></div>
+    <button class="button" onclick="window.Game && Game.closeDeathScreen()">Continue</button>
   </div>
 
-  <!-- victory -->
+  <!-- Victory -->
   <div id="victoryScreen" class="interstitial-screen">
     <h2>Victory!</h2>
-    <img src="assets/IMG_1538.PNG" class="album-art" alt="Oh Death Album Art">
+    <!-- uses rectangular artwork; not forced square -->
+    <img src="assets/IMG_1538.PNG" class="album-art" alt="Album Art">
     <div class="credits-text">
       <p><strong>Game Design</strong><br>D_York</p>
       <p><strong>Original Music by D_York</strong><br>Represented by United Masters</p>
-      <p>Available on <a href="https://unitedmasters.com/m/oh-death-1" target="_blank">Spotify &amp; Apple Music</a></p>
+      <p>Available on <a href="https://unitedmasters.com/m/oh-death-1" target="_blank" rel="noopener">Spotify &amp; Apple Music</a></p>
     </div>
-    <button class="button" onclick="if(Game) Game.closeVictoryScreen()">Main Menu</button>
+    <button class="button" onclick="window.Game && Game.closeVictoryScreen()">Main Menu</button>
   </div>
 
   <script>
   'use strict';
 
-  const GAME_VERSION='1.0.4';
-  const EARTH_COLLISION_RADIUS=45;
-  const EARTH_IMPACT_RADIUS=35;
-  const SHIELD_VISUAL_RADIUS=50;
-  const ENEMY_HIT_RADIUS=25;
-  const BOSS_HIT_RADIUS=80;
-  const MISSILE_SEARCH_RADIUS=100;
-  const STUCK_TIMER_THRESHOLD=3;
-
+  // -------------------- Audio Manager --------------------
   class AudioManager{
     constructor(){
-      this.audioContext=null;
-      this.musicTracks={};
-      this.currentMusic=null;
-      this.currentPlaylist=[];
-      this.currentTrackIndex=0;
-      this.musicVolume=.4;
-      this.sfxVolume=.6;
-      this.muted=false;
-      this.baseMusicVolume=.4;
-      this.duckingActive=false;
-      this.targetVolume=.4;
-      this.tracks={
-        menu:['assets/audio/hippiedancers_-_6_9_24__2_26_PM.m4a'],
-        gameplay:[
+      this.ctx = null;
+      this.music = {};
+      this.current = null;
+      this.muted = false;
+      this.musicVol = 0.45;
+      this.sfxVol = 0.6;
+      this.playlists = {
+        menu: ['assets/audio/hippiedancers_-_6_9_24__2_26_PM.m4a'],
+        gameplay: [
           'assets/audio/m33_-_4_26_25__11_13_AM.m4a',
           'assets/audio/MIAMI__mret_-_5_27_24__5_09_PM_.m4a',
           'assets/audio/goodroots - 1_17_25, 9.41 PM.m4a',
           'assets/audio/newleed - 9_28_24, 6.48 PM.m4a',
           'assets/audio/hippiedancers_-_6_9_24__2_26_PM.m4a'
         ],
-        boss:[
+        boss: [
           'assets/audio/monster.mp3',
           'assets/audio/dumplin_-_7_6_24__8_51_PM.m4a'
         ],
-        victory:['assets/audio/propane2 - 12_21_24, 10.27 AM.m4a'],
-        gameover:['assets/audio/gameover.mp3']
+        victory: ['assets/audio/propane2 - 12_21_24, 10.27 AM.m4a'],
+        gameover: ['assets/audio/gameover.mp3']
       };
+      this.queue = [];
+      this.idx = 0;
       this.init();
     }
-    duckMusic(duration=.3,amount=.5){
-      if(!this.currentMusic||this.muted) return;
-      this.duckingActive=true;
-      const ducked=this.baseMusicVolume*amount;
-      this.targetVolume=ducked;
-      this.smoothTransition(this.currentMusic.volume,ducked,100);
-      setTimeout(()=>{
-        this.duckingActive=false;
-        this.targetVolume=this.baseMusicVolume;
-        this.smoothTransition(this.currentMusic.volume,this.baseMusicVolume,200);
-      },duration*1000);
-    }
-    smoothTransition(from,to,duration){
-      if(!this.currentMusic) return;
-      const steps=10, stepTime=duration/steps, delta=(to-from)/steps;
-      let i=0;
-      const id=setInterval(()=>{
-        if(!this.currentMusic||this.muted){clearInterval(id);return;}
-        i++; this.currentMusic.volume=from+delta*i;
-        if(i>=steps) clearInterval(id);
-      },stepTime);
-    }
+
     async init(){
       try{
-        if(!window.AudioContext&&!window.webkitAudioContext){console.warn('Web Audio API not supported. Audio will be disabled.');return;}
-        this.audioContext=new (window.AudioContext||window.webkitAudioContext)();
-        for(const playlist of Object.values(this.tracks)){
-          for(const path of playlist){
-            if(!this.musicTracks[path]){
-              try{
-                const audio=new Audio(path);
-                audio.loop=false; audio.volume=0; audio.preload='auto';
-                await new Promise((resolve)=>{
-                  audio.oncanplaythrough=resolve;
-                  audio.onerror=()=>{console.warn(`Failed to load audio: ${path}`);resolve();};
-                  audio.load(); setTimeout(resolve,5000);
-                });
-                this.musicTracks[path]=audio;
-              }catch(err){console.warn(`Audio load error: ${err.message}`);}
-            }
+        this.ctx = (window.AudioContext||window.webkitAudioContext)? new (window.AudioContext||window.webkitAudioContext)() : null;
+      }catch{ this.ctx = null; }
+      // Preload tags (HTMLAudio); actual playback is gesture-gated
+      for(const list of Object.values(this.playlists)){
+        for(const src of list){
+          if(!this.music[src]){
+            const a = new Audio(src);
+            a.preload='auto'; a.loop=false; a.volume=0;
+            a.load();
+            this.music[src]=a;
           }
         }
-      }catch(error){console.error('Audio initialization failed:',error);this.audioContext=null;}
+      }
+      // wire mute button
+      const btn=document.getElementById('muteBtn');
+      if(btn){
+        btn.addEventListener('click', ()=>this.toggleMute());
+      }
     }
-    shufflePlaylist(pl){for(let i=pl.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pl[i],pl[j]]=[pl[j],pl[i]];}}
-    playNextTrackInPlaylist(){
-      if(this.currentPlaylist.length<=1||this.muted) return;
-      this.currentTrackIndex=(this.currentTrackIndex+1)%this.currentPlaylist.length;
-      if(this.currentTrackIndex===0) this.shufflePlaylist(this.currentPlaylist);
-      const next=this.currentPlaylist[this.currentTrackIndex];
-      this.playTrack(next,4000,true);
-    }
-    playMusic(name,fadeTime=2000){
-      if(this.muted||!this.tracks[name]||this.tracks[name].length===0) return;
-      const newPl=this.tracks[name]; this.currentPlaylist=[...newPl];
-      if(this.currentPlaylist.length>1) this.shufflePlaylist(this.currentPlaylist);
-      this.currentTrackIndex=0;
-      const path=this.currentPlaylist[this.currentTrackIndex];
-      const isPl=(name==='gameplay'||name==='menu')&&this.currentPlaylist.length>1;
-      this.playTrack(path,fadeTime,isPl);
-    }
-    playTrack(path,fadeTime,isPlaylist=false){
-      if(this.muted||!this.musicTracks[path]) return;
-      const newTrack=this.musicTracks[path];
-      if(this.currentMusic===newTrack && !newTrack.paused) return;
 
-      Object.values(this.musicTracks).forEach(t=>{
-        if(t&&t!==newTrack){t.pause();t.currentTime=0;t.volume=0;t.onended=null;}
-      });
+    kick(){ // resume + start menu if idle
+      if(this.ctx && this.ctx.state==='suspended'){ this.ctx.resume().catch(()=>{}); }
+      // if nothing is playing, start menu music
+      if(!this.current || this.current.paused){
+        this.playMusic('menu', 800);
+      }
+    }
 
-      if(this.currentMusic){this.currentMusic.onended=null;this.fadeOut(this.currentMusic,fadeTime);}
-      this.currentMusic=newTrack; newTrack.currentTime=0;
-      newTrack.play().then(()=>{this.fadeIn(newTrack,fadeTime,this.musicVolume);}).catch(err=>console.warn('Audio play failed:',err));
-      if(isPlaylist){newTrack.loop=false;newTrack.onended=()=>this.playNextTrackInPlaylist();}else{newTrack.onended=null;newTrack.loop=true;}
+    toggleMute(){
+      this.muted=!this.muted;
+      const btn=document.getElementById('muteBtn');
+      if(btn){ btn.classList.toggle('muted', this.muted); }
+      if(this.current){ this.current.volume = this.muted?0:this.musicVol; }
     }
-    fadeIn(audio,duration,target){
-      if(!audio) return; const steps=50, stepTime=duration/steps, inc=target/steps;
-      audio.volume=0; const id=setInterval(()=>{
-        if(!audio||audio.volume>=target-inc||this.muted){if(audio) audio.volume=this.muted?0:target; clearInterval(id);return;}
-        audio.volume+=inc;
-      },stepTime);
+
+    playMusic(name, fade=1200){
+      const list=this.playlists[name]||[];
+      if(!list.length) return;
+      this.queue=[...list];
+      if(name==='menu' || name==='gameplay'){ this.shuffle(this.queue); }
+      this.idx=0;
+      this.playTrack(this.queue[this.idx], fade, (name==='menu'||name==='gameplay'));
     }
-    fadeOut(audio,duration){
-      if(!audio) return; const steps=50, stepTime=duration/steps, start=audio.volume, dec=start/steps;
-      const id=setInterval(()=>{
-        if(!audio||audio.volume<=dec){if(audio){audio.pause();audio.volume=0;} clearInterval(id);return;}
-        audio.volume-=dec;
-      },stepTime);
-    }
-    stopMusic(fade=1000){ if(this.currentMusic){this.currentMusic.onended=null;this.fadeOut(this.currentMusic,fade);} }
-    playSFX(type){
-      if(this.muted||!this.audioContext) return;
-      if(['explosion','bossExplode','missile','bossHit'].includes(type)) this.duckMusic(.3,.5);
-      const ctx=this.audioContext, now=ctx.currentTime;
-      const tone=(freqStart,dur=.1,vol=.3,type='sine',freqEnd=null)=>{
-        const osc=ctx.createOscillator(), g=ctx.createGain(); osc.type=type; osc.connect(g); g.connect(ctx.destination);
-        osc.frequency.setValueAtTime(freqStart,now);
-        if(freqEnd) osc.frequency.exponentialRampToValueAtTime(freqEnd,now+dur);
-        g.gain.setValueAtTime(vol*this.sfxVolume,now); g.gain.exponentialRampToValueAtTime(.01,now+dur);
-        osc.start(now); osc.stop(now+dur);
-      }
-      const noiseExplosion=()=>{
-        const len=ctx.sampleRate*.5, buf=ctx.createBuffer(1,len,ctx.sampleRate), data=buf.getChannelData(0); let last=0;
-        for(let i=0;i<len;i++){const white=Math.random()*2-1; data[i]=(last+0.02*white)/1.02; last=data[i]; data[i]*=3.5;}
-        const src=ctx.createBufferSource(), filt=ctx.createBiquadFilter(), g=ctx.createGain();
-        src.buffer=buf; filt.type='lowpass'; filt.frequency.setValueAtTime(800,now); filt.frequency.exponentialRampToValueAtTime(50,now+.5);
-        src.connect(filt); filt.connect(g); g.connect(ctx.destination);
-        g.gain.setValueAtTime(.5*this.sfxVolume,now); g.gain.exponentialRampToValueAtTime(.01,now+.5);
-        src.start(now); src.stop(now+.5);
-      }
-      switch(type){
-        case 'shoot': tone(200,.1,.3,'sine',50); break;
-        case 'hit': tone(150,.05,.4,'sawtooth',50); break;
-        case 'explosion': noiseExplosion(); break;
-        case 'bossHit': tone(100,.2,.5,'square',30); break;
-        case 'bossExplode': for(let i=0;i<5;i++) setTimeout(()=>this.playSFX('explosion'),i*100); break;
-        case 'missile': tone(400,.3,.4,'sawtooth',100); setTimeout(()=>this.playSFX('explosion'),300); break;
-        case 'powerup': [262,330,392,523].forEach((f,i)=>tone(f,.2,.3,'sine')); break;
-        case 'upgrade': [440,554,659,880].forEach((f,i)=>tone(f,.3,.25,'sine')); break;
-        case 'warning': for(let i=0;i<3;i++){ setTimeout(()=>tone(i%2===0?440:554,.15,.3,'square'),i*200);} break;
-        case 'waveComplete': [523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,.4,.3,'sine'),i*150)); break;
+
+    playTrack(src, fade, chain=false){
+      const next=this.music[src]; if(!next) return;
+      // stop others
+      for(const a of Object.values(this.music)){ if(a && a!==next){ a.pause(); a.currentTime=0; a.volume=0; a.onended=null; } }
+      // fade previous
+      if(this.current){ this.fadeOut(this.current, fade); }
+      this.current=next; next.currentTime=0;
+      next.play().then(()=> this.fadeIn(next, fade, this.muted?0:this.musicVol)).catch(()=>{});
+      if(chain){
+        next.loop=false;
+        next.onended=()=>{
+          this.idx=(this.idx+1)%this.queue.length;
+          this.playTrack(this.queue[this.idx], 800, true);
+        };
+      }else{
+        next.loop=true; next.onended=null;
       }
     }
-    setMusicVolume(v){this.musicVolume=Math.max(0,Math.min(1,v)); if(this.currentMusic) this.currentMusic.volume=this.muted?0:this.musicVolume;}
-    setSFXVolume(v){this.sfxVolume=Math.max(0,Math.min(1,v));}
-    toggleMute(){this.muted=!this.muted; const btn=document.getElementById('muteBtn'); btn?.classList.toggle('muted',this.muted); if(this.currentMusic) this.currentMusic.volume=this.muted?0:this.musicVolume;}
+
+    fadeIn(a,dur,target){ if(!a) return; const steps=30, dt=dur/steps, inc=target/steps; a.volume=0;
+      let i=0; const id=setInterval(()=>{ if(!a) return clearInterval(id);
+        if(this.muted){ a.volume=0; return clearInterval(id); }
+        i++; a.volume=Math.min(target, a.volume+inc); if(i>=steps) clearInterval(id);
+      }, dt);
+    }
+    fadeOut(a,dur){ if(!a) return; const steps=30, dt=dur/steps, dec=(a.volume||0)/steps;
+      let i=0; const id=setInterval(()=>{ if(!a) return clearInterval(id);
+        i++; a.volume=Math.max(0, a.volume-dec); if(i>=steps){ a.pause(); a.volume=0; clearInterval(id); }
+      }, dt);
+    }
+    duck(seconds=.3, amount=.5){
+      if(!this.current || this.muted) return;
+      const base=this.musicVol, target=base*amount;
+      this.fadeTo(this.current, 120, target);
+      setTimeout(()=> this.fadeTo(this.current, 240, base), seconds*1000);
+    }
+    fadeTo(a,dur,target){ if(!a) return; const steps=20, dt=dur/steps; const start=a.volume; const delta=(target-start)/steps;
+      let i=0; const id=setInterval(()=>{ if(!a) return clearInterval(id);
+        i++; a.volume = this.muted?0:(start + delta*i); if(i>=steps) clearInterval(id);
+      }, dt);
+    }
+    shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } }
+
+    // simple SFX with WebAudio
+    sfx(type){
+      if(!this.ctx || this.muted) return;
+      const ctx=this.ctx, now=ctx.currentTime;
+      const tone=(f, t=.1, g=.3, type='sine')=>{
+        const o=ctx.createOscillator(), gain=ctx.createGain();
+        o.type=type; o.frequency.setValueAtTime(f, now); o.connect(gain); gain.connect(ctx.destination);
+        gain.gain.setValueAtTime(g*this.sfxVol, now); gain.gain.exponentialRampToValueAtTime(0.01, now+t);
+        o.start(now); o.stop(now+t);
+      };
+      if(type==='shoot') tone(220, .08, .25, 'square');
+      if(type==='hit') tone(140, .05, .35, 'sawtooth');
+      if(type==='missile'){ tone(440, .25, .3, 'sawtooth'); this.duck(.3,.5); setTimeout(()=>this.sfx('explosion'), 300); }
+      if(type==='explosion'){ for(let i=0;i<4;i++) setTimeout(()=>tone(80+Math.random()*60,.12,.35,'triangle'), i*40); }
+      if(type==='upgrade'){ [440,554,659,880].forEach((f,i)=> setTimeout(()=>tone(f,.25,.24,'sine'), i*110)); }
+      if(type==='warning'){ [440,554,440].forEach((f,i)=> setTimeout(()=>tone(f,.15,.3,'square'), i*180)); }
+      if(type==='bossHit'){ tone(120,.2,.45,'square'); }
+      if(type==='wave'){ [523,659,784,1047].forEach((f,i)=> setTimeout(()=>tone(f,.35,.3,'sine'), i*150)); }
+    }
   }
 
-  let audioManager;
-  function initAudioSystem(){ audioManager=new AudioManager(); document.getElementById('audioControls').style.display='flex'; const btn=document.getElementById('muteBtn'); btn?.classList.toggle('muted',audioManager.muted); }
-  function toggleAudio(){ if(!audioManager) return; audioManager.toggleMute(); }
-
-  window.addEventListener('load', ()=>{ initAudioSystem(); });
-  window.addEventListener('error',(e)=>{console.error('Game Error:',e.error); if(e.error&&e.error.stack) console.error('Stack:',e.error.stack);});
-  window.addEventListener('unhandledrejection',(e)=>{console.error('Unhandled Promise Rejection:',e.reason); e.preventDefault();});
-
-  let Game=null;
-
+  // -------------------- Game --------------------
   function initializeGame(){
+    // Canvas + ctx
     const canvas=document.getElementById('gameCanvas');
     const ctx=canvas.getContext('2d');
 
-    const CONFIG={
-      ORBIT_RADIUS:60,MAX_WAVES:20,INITIAL_LIVES:3,INITIAL_COINS:100,INITIAL_MISSILES:3,
-      MAX_PARTICLES:500,PARTICLE_MULTIPLIER:1.0,SPATIAL_GRID_CELL_SIZE:150,AUTO_FIRE_BASE_RATE:400,
-      COMBO_TIMEOUT:3,STUCK_TIMER_DURATION:3,HIT_PAUSE_DURATION:.05,HIT_PAUSE_SCALE:.3,SCREEN_SHAKE_DAMPENING:.85,
-      ENEMY_HIT_RADIUS:25,BOSS_HIT_RADIUS:80,MISSILE_SEARCH_RADIUS:100,
-      DIFFICULTY:{easy:{enemyHealth:.7,enemySpeed:.7,enemyCount:.8,coinMultiplier:1.2},normal:{enemyHealth:1,enemySpeed:1,enemyCount:1,coinMultiplier:1},hard:{enemyHealth:1.3,enemySpeed:1.5,enemyCount:1.5,coinMultiplier:.8}},
-      SHIP_SIZE:58,ENEMY_SIZE_BASE:60,BOSS_SIZE_BASE:150,SHIELD_RADIUS:70,DEBUG_MODE:false,SHOW_FPS:false,SHOW_HITBOXES:false,GOD_MODE:false
+    // Assets
+    const bgImg=new Image(); bgImg.src='assets/background.png'; let bgInfo=null, bgLoaded=false;
+    bgImg.onload=()=>{ bgLoaded=true; resize(); };
+
+    const shipImg=new Image(); shipImg.src='assets/player-ship.jpg'; let shipLoaded=false; shipImg.onload=()=>shipLoaded=true;
+    const shipDamImg=new Image(); shipDamImg.src='assets/player-ship-damaged.jpg'; let shipDamLoaded=false; shipDamImg.onload=()=>shipDamLoaded=true;
+
+    const bossProjImg=new Image(); bossProjImg.src='assets/IMG_1439_2.JPG';
+
+    // Audio
+    const audio=new AudioManager();
+
+    // Config
+    const CFG={
+      ORBIT_R:60,
+      SHIELD_R:70,
+      EARTH_COLLIDE_R:45,
+      EARTH_IMPACT_R:35,
+      ENEMY_HIT_R:25,
+      BOSS_HIT_R:80,
+      SHIP_SIZE:58,
+      MAX_WAVES:20
     };
 
-    const isMobile=/iPhone|iPad|Android/i.test(navigator.userAgent);
-    if(isMobile){CONFIG.MAX_PARTICLES=250;CONFIG.PARTICLE_MULTIPLIER=.5;}
-
-    const orbitRadius=CONFIG.ORBIT_RADIUS, maxWaves=CONFIG.MAX_WAVES;
-
-    let wave=1,lives=CONFIG.INITIAL_LIVES,coins=CONFIG.INITIAL_COINS,score=0,missiles=CONFIG.INITIAL_MISSILES;
-    let shipAngle=0,targetAngle=0;
-    let shipX=0,shipY=0;
-    let gameRunning=false,isPaused=false,lastFrameTime=0;
-    let screenShake=0,autoFireTimer=0,comboCount=0,comboTimer=0;
-    let waitingForNextWave=false,showingWaveChoice=false;
-    let currentWaveModifier=null,shopReturnState='menu';
-    let shotsFired=0,shotsHit=0;
+    // State
+    let visualEarthX=0, visualEarthY=0; // derived from background fit
+    let wave=1, score=0, lives=3, coins=100, missiles=3;
+    let gameRunning=false, paused=false;
+    let shipAngle=0, targetAngle=0;
+    let lastT=performance.now();
+    let enemies=[], projectiles=[], missilesArr=[], bossShots=[], particles=[];
+    let showingWaveChoice=false, waitingNext=false, shopReturn='menu';
     let difficulty='normal';
-    let highScore=0;
-    let stuckTimer=0;
-    let burstCounter=0;
-    let hitPauseTimer=0;
-    let timeScale=1.0;
+    const deathStats={waveReached:1, enemiesKilled:0, coinsEarned:0, accuracy:'0%'};
+    let shotsFired=0, shotsHit=0;
 
-    function triggerHitPause(d=CONFIG.HIT_PAUSE_DURATION,s=CONFIG.HIT_PAUSE_SCALE){hitPauseTimer=Math.max(hitPauseTimer,d);timeScale=s;}
-    function updateHitPause(dt){ if(hitPauseTimer>0){hitPauseTimer-=dt; if(hitPauseTimer<=0){timeScale=1.0;}} }
-
-    let powerUps=[];
-    let activeEffects={overdrive:0,gravityBomb:0};
-    let survivalMode=false,survivalTimer=0,survivalKills=0,closeKillBonus=0,perfectWaveBonus=true,grazeBonus=0;
-
-    let playAreaBounds={left:0,top:0,right:0,bottom:0};
-    let visualEarthX=canvas.width/2, visualEarthY=canvas.height/2;
-    let earthCenterX=visualEarthX, earthCenterY=visualEarthY;
-
-    let gameState={};
-    const defaultGameState={equipment:{weapon:'basic',shield:null,system:null},owned:{weapons:['basic'],shields:[],systems:[]},maxShieldHealth:0,shieldHealth:0,temporaryUpgrades:[]};
-
-    const deathStats={waveReached:1,enemiesKilled:0,coinsEarned:0,accuracy:'0%'};
-
-    let projectiles=[],enemies=[],particles=[],explosions=[],missileProjectiles=[];
-    let bossProjectiles=[];
-    let beamEffects=[];
-    let plasmaWaves=[];
-    let bgDrawInfo={};
-
-    const backgroundImg=new Image();
-    backgroundImg.src='assets/background.png';
-    let backgroundLoaded=false;
-    backgroundImg.onload=()=>{backgroundLoaded=true;resizeCanvas();};
-    backgroundImg.onerror=()=>{console.warn('Background image failed to load - using fallback');backgroundLoaded=false;resizeCanvas();};
-
-    /* BLUE DOT FIX: use your repo file names exactly */
-    const playerShipImg=new Image();
-    playerShipImg.src='assets/player-ship.jpg';
-    let playerShipLoaded=false; playerShipImg.onload=()=>playerShipLoaded=true; playerShipImg.onerror=()=>console.warn('Player ship image failed to load');
-
-    const playerShipDamagedImg=new Image();
-    playerShipDamagedImg.src='assets/player-ship-damaged.jpg';
-    let playerShipDamagedLoaded=false; playerShipDamagedImg.onload=()=>playerShipDamagedLoaded=true; playerShipDamagedImg.onerror=()=>console.warn('Damaged ship image failed to load');
-
-    /* Boss projectile images (case-sensitive .JPG) */
-    const bossProjectileImg1=new Image(); bossProjectileImg1.src='assets/IMG_1441_2.JPG'; bossProjectileImg1.onerror=()=>console.warn('Boss projectile 1 failed to load');
-    const bossProjectileImg2=new Image(); bossProjectileImg2.src='assets/IMG_1439_2.JPG'; bossProjectileImg2.onerror=()=>console.warn('Boss projectile 2 failed to load');
-
-    const enemyImagePaths=["assets/IMG_1505.jpg","assets/IMG_1506.jpg","assets/IMG_1508.jpg","assets/IMG_1510.jpg","assets/IMG_1511.jpg","assets/IMG_1512.jpg","assets/IMG_1513.jpg","assets/IMG_1514.jpg","assets/IMG_1515.jpg","assets/IMG_1517.jpg"];
-    const enemyImages={};
-
-    class AssetPreloader{
-      constructor(){this.assets=[];this.loaded=0;this.total=0;this.onProgress=null;this.onComplete=null;}
-      addImage(src,id=null){this.assets.push({type:'image',src,id});this.total++;}
-      addAudio(src,id=null){this.assets.push({type:'audio',src,id});this.total++;}
-      async load(){const ps=this.assets.map(a=>a.type==='image'?this.loadImage(a.src,a.id):this.loadAudio(a.src,a.id)); await Promise.all(ps); if(this.onComplete) this.onComplete();}
-      loadImage(src,id){return new Promise((resolve)=>{const img=new Image(); img.onload=()=>{this.loaded++; this.onProgress&&this.onProgress(this.loaded,this.total); resolve({img,id,src});}; img.onerror=()=>{console.warn(`Failed to load image: ${src}`); this.loaded++; this.onProgress&&this.onProgress(this.loaded,this.total); resolve(null);}; img.src=src;});}
-      loadAudio(src,id){return new Promise((resolve)=>{const audio=new Audio(src); audio.preload='auto'; audio.oncanplaythrough=()=>{this.loaded++; this.onProgress&&this.onProgress(this.loaded,this.total); resolve({audio,id,src});}; audio.onerror=()=>{console.warn(`Failed to load audio: ${src}`); this.loaded++; this.onProgress&&this.onProgress(this.loaded,this.total); resolve(null);}; audio.load();});}
-      getProgress(){return this.total>0?this.loaded/this.total:0;}
-    }
-
-    function preloadEnemyImages(){enemyImagePaths.forEach(path=>{const img=new Image(); img.src=path; img.onload=()=>enemyImages[path]=img; img.onerror=()=>console.warn(`Failed to load enemy image: ${path}`);});}
-
+    // Shop data (kept consistent with your build)
     const shopItems={
       weapons:[
-        {id:"basic", name:"Basic Cannon", cost:0, damage:1, fireRate:400, desc:"Standard issue.", sprite:"assets/IMG_1426_2.jpg"},
-        {id:"spread", name:"Spread Shot", cost:250, damage:.8, fireRate:450, desc:"Fires 5 projectiles in a fan pattern.", pattern:"spread", sprite:"assets/IMG_1405_2.jpg"},
-        {id:"piercing", name:"Rail Gun", cost:500, damage:5, fireRate:1000, desc:"Instant beam that pierces all enemies.", beam:true, piercing:true, sprite:"assets/IMG_1408_2.jpg"},
-        {id:"rapid", name:"Rapid Fire", cost:800, damage:.5, fireRate:100, desc:"Continuous stream of bullets.", rapid:true, sprite:"assets/IMG_1403_2.jpg"},
-        {id:"burst", name:"Burst Cannon", cost:1200, damage:1.5, fireRate:600, desc:"Fires 3-shot bursts.", burst:3, sprite:"assets/IMG_1404_2.jpg"},
-        {id:"plasma", name:"Plasma Wave", cost:2000, damage:3, fireRate:800, desc:"Expanding energy wave hits multiple targets.", wave:true, sprite:"assets/IMG_1429_2.jpg"}
+        {id:'basic', name:'Basic Cannon', cost:0, damage:1, fireRate:400, desc:'Standard issue.', sprite:'assets/IMG_1426_2.jpg'},
+        {id:'spread', name:'Spread Shot', cost:250, damage:0.8, fireRate:450, desc:'5-way fan.', pattern:'spread', sprite:'assets/IMG_1405_2.jpg'},
+        {id:'piercing', name:'Rail Gun', cost:500, damage:5, fireRate:1000, desc:'Pierces enemies.', beam:true, piercing:true, sprite:'assets/1408_2.jpg'},
+        {id:'rapid', name:'Rapid Fire', cost:800, damage:0.5, fireRate:100, desc:'Stream of bullets.', rapid:true, sprite:'assets/IMG_1403_2.jpg'},
+        {id:'burst', name:'Burst Cannon', cost:1200, damage:1.5, fireRate:600, desc:'3-shot bursts.', burst:3, sprite:'assets/IMG_1404_2.jpg'},
+        {id:'plasma', name:'Plasma Wave', cost:2000, damage:3, fireRate:800, desc:'Expanding wave.', wave:true, sprite:'assets/IMG_1429_2.jpg'}
       ],
       shields:[
-        {id:"basic", name:"Energy Shield", cost:300, health:100, desc:"Absorbs 100 damage.", sprite:"assets/IMG_1424_2.jpg"},
-        {id:"regen", name:"Regen Shield", cost:700, health:80, regen:2, desc:"Regenerates 2 HP per second.", sprite:"assets/IMG_1423_2.jpg"},
-        {id:"reflect", name:"Reflect Shield", cost:1000, health:100, reflect:.4, desc:"40% chance to destroy enemies on contact.", sprite:"assets/IMG_1421_2.jpg"},
-        {id:"absorb", name:"Absorb Shield", cost:1500, health:150, absorb:true, desc:"Converts damage into coins.", sprite:"assets/IMG_1409_2.jpg"}
+        {id:'basic', name:'Energy Shield', cost:300, health:100, desc:'Absorbs 100.', sprite:'assets/IMG_1424_2.jpg'},
+        {id:'regen', name:'Regen Shield', cost:700, health:80, regen:2, desc:'+2 HP/s.', sprite:'assets/IMG_1423_2.jpg'}
       ],
       systems:[
-        {id:"speed", name:"Thrusters", cost:300, speedBoost:1.5, desc:"50% faster ship rotation.", sprite:"assets/IMG_1422_2.jpg"},
-        {id:"auto", name:"Auto-Targeter", cost:600, autoTarget:true, desc:"Automatically aims at nearest enemy.", sprite:"assets/IMG_1416_2.jpg"},
-        {id:"slowmo", name:"Time Dilation", cost:900, slowmo:.6, desc:"Enemies move 40% slower.", sprite:"assets/IMG_1447_2.jpg"},
-        {id:"multilock", name:"Multi-Lock", cost:1500, multiTarget:3, desc:"Missiles track 3 targets simultaneously.", sprite:"assets/IMG_1445_2.jpg"}
+        {id:'speed', name:'Thrusters', cost:300, speedBoost:1.5, desc:'+50% turn speed.', sprite:'assets/IMG_1422_2.jpg'},
+        {id:'auto', name:'Auto-Targeter', cost:600, autoTarget:true, desc:'Aims at nearest.', sprite:'assets/IMG_1416_2.jpg'}
       ]
     };
+    const gameState={
+      equipment:{weapon:'basic', shield:null, system:null},
+      owned:{weapons:['basic'], shields:[], systems:[]},
+      maxShieldHealth:0, shieldHealth:0, temporaryUpgrades:[]
+    };
 
-    const waveModifiers=[
-      {id:"speed", name:"Speed Wave", desc:"Enemies move 2x faster!", speedMultiplier:2, color:"#3b82f6"},
-      {id:"swarm", name:"Swarm Wave", desc:"3x more enemies!", enemyMultiplier:3, color:"#10b981"},
-      {id:"boss", name:"Boss Wave", desc:"One massive enemy!", bossWave:true, color:"#ef4444"},
-      {id:"armored", name:"Armored Wave", desc:"Enemies have 2x health!", healthMultiplier:2, color:"#f59e0b"},
-      {id:"fast-spawn", name:"Siege Wave", desc:"Enemies spawn closer!", spawnDistance:.5, color:"#8b5cf6"}
-    ];
-
-    class SpatialGrid{
-      constructor(cellSize=100){this.cellSize=cellSize;this.grid=new Map();}
-      clear(){this.grid.clear();}
-      _getCellKey(x,y){const cellX=Math.floor(x/this.cellSize), cellY=Math.floor(y/this.cellSize); return `${cellX},${cellY}`;}
-      insert(ent){if(!ent||ent.x===undefined||ent.y===undefined) return; const key=this._getCellKey(ent.x,ent.y); if(!this.grid.has(key)) this.grid.set(key,[]); this.grid.get(key).push(ent);}
-      getNearby(x,y,r){const out=[], cr=Math.ceil(r/this.cellSize), cx=Math.floor(x/this.cellSize), cy=Math.floor(y/this.cellSize);
-        for(let dx=-cr;dx<=cr;dx++){for(let dy=-cr;dy<=cr;dy++){const k=`${cx+dx},${cy+dy}`; if(this.grid.has(k)) out.push(...this.grid.get(k));}}
-        return out;
-      }
-      getAllEntities(){const all=[]; for(const arr of this.grid.values()) all.push(...arr); return all;}
+    // ---------- helpers ----------
+    function $(id){ return document.getElementById(id); }
+    function updateUI(){
+      const w=$('waveDisplay'), s=$('scoreDisplay'), l=$('livesDisplay'), c=$('coinsDisplay'), m=$('missilesDisplay'), b=$('shopBalance');
+      if(w) w.textContent=wave;
+      if(s) s.textContent=score;
+      if(l) l.textContent=lives;
+      if(c) c.textContent=coins;
+      if(m) m.textContent=missiles;
+      if(b) b.textContent=coins;
     }
 
-    const enemyGrid=new SpatialGrid(150);
-    const projectileGrid=new SpatialGrid(100);
-    const bossProjectileGrid=new SpatialGrid(100);
-
-    class ObjectPool{
-      constructor(createFn,resetFn,initial=50){this.createFn=createFn;this.resetFn=resetFn;this.pool=[];this.active=[];for(let i=0;i<initial;i++) this.pool.push(this.createFn());}
-      get(...args){let obj=this.pool.pop(); if(!obj) obj=this.createFn(); this.resetFn(obj,...args); this.active.push(obj); return obj;}
-      release(obj){const idx=this.active.indexOf(obj); if(idx>-1){this.active.splice(idx,1); this.pool.push(obj);}}
-      releaseAll(){this.pool.push(...this.active); this.active=[];}
-      getActive(){return this.active;}
-      getActiveCount(){return this.active.length;}
-    }
-
-    const particlePool=new ObjectPool(
-      ()=>({x:0,y:0,vx:0,vy:0,color:'#fff',lifetime:1,maxLifetime:1,size:2}),
-      (p,x,y,vx,vy,color,lifetime,size=2)=>{p.x=x;p.y=y;p.vx=vx;p.vy=vy;p.color=color;p.lifetime=lifetime;p.maxLifetime=lifetime;p.size=size+Math.random()*size;},
-      isMobile?250:500
-    );
-
-    const projectilePool=new ObjectPool(
-      ()=>({x:0,y:0,vx:0,vy:0,damage:1,piercing:false,life:3,maxLife:3,weaponType:'basic'}),
-      (p,x,y,vx,vy,damage,piercing,weaponType)=>{p.x=x;p.y=y;p.vx=vx;p.vy=vy;p.damage=damage;p.piercing=piercing;p.life=3;p.maxLife=3;p.weaponType=weaponType;},
-      100
-    );
-
-    const missilePool=new ObjectPool(
-      ()=>({x:0,y:0,vx:0,vy:0,target:null,life:5,damage:10}),
-      (m,x,y,vx,vy,target)=>{m.x=x;m.y=y;m.vx=vx;m.vy=vy;m.target=target;m.life=5;m.damage=10;},
-      20
-    );
-
-    const bossProjectilePool=new ObjectPool(
-      ()=>({x:0,y:0,vx:0,vy:0,damage:1,spritePath:null,rotation:0}),
-      (bp,x,y,vx,vy,damage)=>{bp.x=x;bp.y=y;bp.vx=vx;bp.vy=vy;bp.damage=damage;bp.rotation=0;},
-      50
-    );
-
-    class CanvasDamageNumber{
-      constructor(x,y,damage){this.x=x;this.y=y;this.damage=damage;this.lifetime=1;this.offsetY=0;this.alpha=1;}
-      update(dt){this.lifetime-=dt;this.offsetY-=50*dt;this.alpha=Math.max(0,this.lifetime);return this.lifetime>0;}
-      draw(ctx){ctx.save();ctx.globalAlpha=this.alpha;ctx.font='bold 20px JetBrains Mono';ctx.textAlign='center';ctx.strokeStyle='#000';ctx.lineWidth=4;ctx.fillStyle='#ff4444';const t=`-${Math.floor(this.damage)}`;const y=this.y+this.offsetY;ctx.strokeText(t,this.x,y);ctx.fillText(t,this.x,y);ctx.restore();}
-    }
-    let canvasDamageNumbers=[];
-    function showDamageNumber(x,y,damage){if(canvasDamageNumbers.length>50) return; canvasDamageNumbers.push(new CanvasDamageNumber(x,y,damage));}
-    function updateDamageNumbers(dt){canvasDamageNumbers=canvasDamageNumbers.filter(d=>d&&d.update(dt));}
-    function drawDamageNumbers(ctx){canvasDamageNumbers.forEach(d=>d&&d.draw(ctx));}
-
-    function addCombo(){comboCount++; comboTimer=3; updateComboDisplay(); if(comboCount%5===0){coins+=2*comboCount; score+=10*comboCount;}}
-    function updateComboDisplay(){const el=document.getElementById('comboCounter'); if(!el) return; if(comboCount>1){el.textContent=`${comboCount}x Combo!`; el.style.fontSize=`${Math.min(1.5+.1*comboCount,2.5)}rem`; el.style.opacity='1';} else {el.style.opacity='0';}}
-
-    function init(){
-      preloadEnemyImages();
-      resizeCanvas(); window.addEventListener('resize',resizeCanvas);
-      loadGameState(); setupControls(); renderShop('weapons');
-      if(audioManager) audioManager.playMusic('menu');
-    }
-
-    function resizeCanvas(){
-      canvas.width=window.innerWidth; canvas.height=window.innerHeight;
-      playAreaBounds={left:0,top:0,right:canvas.width,bottom:canvas.height};
-      if(backgroundLoaded && backgroundImg.width){
-        const canvasAspect=canvas.width/canvas.height, imgAspect=backgroundImg.width/backgroundImg.height;
-        let drawWidth,drawHeight,offsetX,offsetY;
-        if(canvasAspect>imgAspect){ drawWidth=canvas.width; drawHeight=drawWidth/imgAspect; offsetX=0; offsetY=(canvas.height-drawHeight)/2; }
-        else{ drawHeight=canvas.height; drawWidth=drawHeight*imgAspect; offsetY=0; offsetX=(canvas.width-drawWidth)/2; }
-        bgDrawInfo={x:offsetX,y:offsetY,width:drawWidth,height:drawHeight};
-        visualEarthX=bgDrawInfo.x+bgDrawInfo.width/2;
-        visualEarthY=bgDrawInfo.y+bgDrawInfo.height*0.48;
-        earthCenterX=visualEarthX; earthCenterY=visualEarthY;
+    function resize(){
+      canvas.width=innerWidth; canvas.height=innerHeight;
+      // Fit background like CSS "cover"
+      if(bgLoaded && bgImg.width){
+        const cw=canvas.width, ch=canvas.height, ca=cw/ch;
+        const ia=bgImg.width/bgImg.height;
+        let dw, dh, ox, oy;
+        if(ca>ia){ dw=cw; dh=dw/ia; ox=0; oy=(ch-dh)/2; }
+        else{ dh=ch; dw=dh*ia; oy=0; ox=(cw-dw)/2; }
+        bgInfo={x:ox,y:oy,w:dw,h:dh};
+        // Earth visual center ~48% from top of background (as in your build)
+        visualEarthX=ox + dw/2;
+        visualEarthY=oy + dh*0.48;
       }else{
-        visualEarthX=canvas.width/2; visualEarthY=canvas.height/2; earthCenterX=visualEarthX; earthCenterY=visualEarthY;
+        visualEarthX=canvas.width/2; visualEarthY=canvas.height/2;
       }
-      drawBackground();
     }
+    window.addEventListener('resize', resize);
+    resize();
 
-    function loadGameState(){
-      try{const s=localStorage.getItem('earthDefenderHighScore'); highScore=s?parseInt(s,10):0;}catch(e){console.warn('Failed to load high score:',e);highScore=0;}
-      try{
-        const saved=localStorage.getItem('earthDefenderSave');
-        if(saved){
-          const data=JSON.parse(saved);
-          if(data.version && data.version!==GAME_VERSION){console.warn('Save version mismatch, resetting...'); gameState=JSON.parse(JSON.stringify(defaultGameState)); coins=CONFIG.INITIAL_COINS;}
-          else{gameState=data.gameState||JSON.parse(JSON.stringify(defaultGameState)); coins=data.coins||CONFIG.INITIAL_COINS;}
-        }else{gameState=JSON.parse(JSON.stringify(defaultGameState)); coins=CONFIG.INITIAL_COINS;}
-      }catch(err){console.error('Failed to load game state, resetting:',err); gameState=JSON.parse(JSON.stringify(defaultGameState)); coins=CONFIG.INITIAL_COINS;}
-    }
-
-    function saveGameState(){
-      try{
-        highScore=Math.max(highScore,score);
-        localStorage.setItem('earthDefenderHighScore',highScore.toString());
-        localStorage.setItem('earthDefenderSave',JSON.stringify({version:GAME_VERSION,gameState,coins}));
-      }catch(e){console.error('Failed to save game state:',e);}
-    }
-
-    function setupControls(){
-      let isDragging=false, touchStartY=0;
-      canvas.addEventListener('mousemove',(e)=>{if(!gameRunning||isPaused)return; const r=canvas.getBoundingClientRect(); targetAngle=Math.atan2(e.clientY-r.top-earthCenterY,e.clientX-r.left-earthCenterX);});
-      canvas.addEventListener('touchstart',(e)=>{if(!gameRunning||isPaused)return; e.preventDefault(); isDragging=true; touchStartY=e.touches[0].clientY;},{passive:false});
-      canvas.addEventListener('touchmove',(e)=>{if(!gameRunning||isPaused||!isDragging)return; e.preventDefault(); const y=e.touches[0].clientY; const d=y-touchStartY; const s=.008; targetAngle+=d*s; touchStartY=y;},{passive:false});
-      canvas.addEventListener('touchend',()=>isDragging=false);
-      document.addEventListener('keydown',(e)=>{
-        if(e.key==='Escape'){isPaused=!isPaused; const d=isPaused?'flex':'none'; document.getElementById('pauseScreen').style.display=d; if(audioManager){if(isPaused) audioManager.stopMusic(500); else audioManager.playMusic(isBossWave()?'boss':'gameplay');}}
-        if(!gameRunning||isPaused) return;
-        if(e.key==='ArrowLeft'||e.key==='a') targetAngle-=.1;
-        else if(e.key==='ArrowRight'||e.key==='d') targetAngle+=.1;
-        else if(e.key===' '){e.preventDefault(); Game.launchMissile();}
-      });
-    }
-
-    function setDifficulty(level){difficulty=level;}
-
-    function startGame(level='normal'){
-      setDifficulty(level);
-      if(audioManager) audioManager.playMusic('gameplay',1500);
-      shopReturnState='menu'; isPaused=false;
-      document.getElementById('menu').style.display='none';
-      document.getElementById('titleImage').style.display='none';
-      document.getElementById('hud').style.display='flex';
-      document.getElementById('missileButton').style.display='flex';
-      gameRunning=true; wave=1; lives=CONFIG.INITIAL_LIVES; score=0; missiles=CONFIG.INITIAL_MISSILES; comboCount=0; shotsFired=0; shotsHit=0;
-      waitingForNextWave=false; showingWaveChoice=false; stuckTimer=0; burstCounter=0;
-      loadGameState(); gameState.temporaryUpgrades=[];
-      enemies=[]; projectiles=[]; particles=[]; missileProjectiles=[]; bossProjectiles=[]; beamEffects=[]; plasmaWaves=[];
-      deathStats.waveReached=1; deathStats.enemiesKilled=0; deathStats.coinsEarned=coins;
-      lastFrameTime=performance.now();
-      updateUI();
-      spawnWave();
-      requestAnimationFrame(gameLoop);
-    }
-
-    let fps=60, frameCount=0, lastFpsUpdate=0, DEBUG_MODE=false;
-    function updateFPS(now){frameCount++; if(now-lastFpsUpdate>=1000){fps=frameCount; frameCount=0; lastFpsUpdate=now; if(DEBUG_MODE){const e=document.getElementById('fpsCounter'); if(e){e.textContent=`FPS: ${fps}`; e.style.display='block'; e.style.color=fps>=60?'#0f0':fps>=30?'#ff0':'#f00';}}}}
-
-    function gameLoop(now){
-      requestAnimationFrame(gameLoop);
-      updateFPS(now);
-      if(isPaused){drawBackground(); drawShield(); drawShip(); return;}
-      if(!now) now=performance.now();
-      let dt=Math.min((now-lastFrameTime)/1000,0.0167);
-      updateHitPause(dt); dt*=timeScale; lastFrameTime=now;
-      drawBackground();
-
-      if(!gameRunning && !showingWaveChoice){drawShield(); drawShip(); updateParticles(dt); return;}
-
-      ctx.save();
-      if(screenShake>.1){
-        const sx=(Math.random()-.5)*screenShake, sy=(Math.random()-.5)*screenShake, rot=(Math.random()-.5)*(screenShake*0.002);
-        ctx.translate(canvas.width/2,canvas.height/2); ctx.rotate(rot); ctx.translate(-canvas.width/2+sx,-canvas.height/2+sy);
-        screenShake*=CONFIG.SCREEN_SHAKE_DAMPENING;
-      }else if(screenShake>0){screenShake=0;}
-
-      drawShield(); drawShip();
-      updateBeamEffects(dt); updatePlasmaWaves(dt); updateProjectiles(dt); updateMissiles(dt); updateBossProjectiles(dt);
-      updateEnemies(dt); updateParticles(dt); updateDamageNumbers(dt); updateExplosions(dt);
-      drawDamageNumbers(ctx); autoFire(dt); checkCollisions();
-
-      const shield=shopItems.shields.find(s=>s.id===gameState.equipment.shield);
-      if(shield && shield.regen && gameState.shieldHealth<gameState.maxShieldHealth){
-        gameState.shieldHealth=Math.min(gameState.shieldHealth+shield.regen*dt,gameState.maxShieldHealth);
+    // ---------- input ----------
+    let dragging=false, touchY=0;
+    canvas.addEventListener('mousemove', e=>{
+      if(!gameRunning || paused) return;
+      const r=canvas.getBoundingClientRect();
+      targetAngle=Math.atan2(e.clientY-r.top-visualEarthY, e.clientX-r.left-visualEarthX);
+    });
+    canvas.addEventListener('touchstart', e=>{ if(!gameRunning||paused) return; dragging=true; touchY=e.touches[0].clientY; }, {passive:true});
+    canvas.addEventListener('touchmove', e=>{
+      if(!gameRunning||paused||!dragging) return; const dy=e.touches[0].clientY-touchY; touchY=e.touches[0].clientY; targetAngle+=dy*0.008;
+    }, {passive:true});
+    canvas.addEventListener('touchend', ()=> dragging=false);
+    document.addEventListener('keydown', e=>{
+      if(e.key==='Escape'){ paused=!paused; $('pauseScreen').style.display=paused?'flex':'none';
+        if(paused) audio.playMusic('menu',600); else audio.playMusic(isBossWave()?'boss':'gameplay',800);
       }
+      if(!gameRunning||paused) return;
+      if(e.key===' '){ e.preventDefault(); launchMissile(); }
+      if(e.key==='a'||e.key==='ArrowLeft') targetAngle-=0.1;
+      if(e.key==='d'||e.key==='ArrowRight') targetAngle+=0.1;
+    });
 
-      const system=shopItems.systems.find(s=>s.id===gameState.equipment.system);
-      if(system && system.autoTarget && enemies.length>0){
-        const nearest=enemies.reduce((n,e)=>{if(!e||!n) return e||n; const d=Math.hypot(e.x-shipX,e.y-shipY), nd=Math.hypot(n.x-shipX,n.y-shipY); return d<nd?e:n;}, enemies[0]);
-        if(nearest) targetAngle=Math.atan2(nearest.y-shipY,nearest.x-shipX);
-      }
-
-      const angleDiff=targetAngle-shipAngle, normalized=Math.atan2(Math.sin(angleDiff),Math.cos(angleDiff));
-      const rotSpeed=(system && system.speedBoost)?0.15*system.speedBoost:0.15;
-      shipAngle+=normalized*rotSpeed;
-
-      if(comboCount>0){comboTimer-=dt; if(comboTimer<=0){comboCount=0; updateComboDisplay();}}
-
-      if(gameRunning && !waitingForNextWave && !showingWaveChoice && enemies.length===0){
-        stuckTimer+=dt;
-        if(stuckTimer>STUCK_TIMER_THRESHOLD){
-          stuckTimer=0; waitingForNextWave=true;
-          if(wave>=maxWaves){showVictoryScreen(); return;}
-          wave++; if(audioManager) audioManager.playSFX('waveComplete');
-          deathStats.waveReached=wave; coins+=wave*50; missiles=Math.min(missiles+1,10); updateUI(); saveGameState(); showWaveChoiceScreen();
-        }
-      }else{stuckTimer=0;}
-
-      ctx.restore();
-    }
-
-    function isBossWave(){return wave>0 && wave%5===0;}
-
+    // ---------- draw ----------
     function drawBackground(){
-      ctx.fillStyle="#0a0e1a"; ctx.fillRect(0,0,canvas.width,canvas.height);
-      if(backgroundLoaded && bgDrawInfo.width){ctx.drawImage(backgroundImg,bgDrawInfo.x,bgDrawInfo.y,bgDrawInfo.width,bgDrawInfo.height);}
+      ctx.fillStyle='#0a0e1a'; ctx.fillRect(0,0,canvas.width,canvas.height);
+      if(bgInfo) ctx.drawImage(bgImg, bgInfo.x, bgInfo.y, bgInfo.w, bgInfo.h);
     }
-
     function drawShield(){
       if(gameState.shieldHealth>0 && gameState.maxShieldHealth>0){
-        const pct=gameState.shieldHealth/gameState.maxShieldHealth, opacity=.15 + pct*.35;
-        ctx.strokeStyle=`rgba(34,211,238,${opacity})`; ctx.lineWidth=2.5; ctx.setLineDash([5,5]);
-        ctx.beginPath(); ctx.arc(visualEarthX,visualEarthY,SHIELD_VISUAL_RADIUS,0,Math.PI*2); ctx.stroke();
-        if(pct>.66){ctx.strokeStyle=`rgba(34,211,238,${opacity*.6})`; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(visualEarthX,visualEarthY,55,0,Math.PI*2); ctx.stroke();}
-        if(pct>.33){ctx.strokeStyle=`rgba(34,211,238,${opacity*.4})`; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(visualEarthX,visualEarthY,60,0,Math.PI*2); ctx.stroke();}
-        ctx.setLineDash([]);
+        const pct=gameState.shieldHealth/gameState.maxShieldHealth;
+        ctx.save();
+        ctx.strokeStyle=`rgba(34,211,238,${0.15+0.35*pct})`;
+        ctx.lineWidth=2.5; ctx.setLineDash([6,6]);
+        ctx.beginPath(); ctx.arc(visualEarthX, visualEarthY, CFG.SHIELD_R, 0, Math.PI*2); ctx.stroke();
+        ctx.restore(); ctx.setLineDash([]);
       }
     }
-
     function drawShip(){
-      shipX=earthCenterX+Math.cos(shipAngle)*orbitRadius;
-      shipY=earthCenterY+Math.sin(shipAngle)*orbitRadius;
-      ctx.save(); ctx.translate(shipX,shipY); ctx.rotate(shipAngle+Math.PI/2);
-      const size=CONFIG.SHIP_SIZE, damaged=(lives===1 && playerShipDamagedLoaded);
-      const img=damaged?playerShipDamagedImg:playerShipImg, loaded=damaged?playerShipDamagedLoaded:playerShipLoaded;
-      if(loaded && img.complete && img.naturalWidth!==0){ctx.globalCompositeOperation='lighter'; ctx.drawImage(img,-size/2,-size/2,size,size); ctx.globalCompositeOperation='source-over';}
-      else{ctx.fillStyle='#22d3ee'; ctx.beginPath(); ctx.arc(0,0,size/3,0,2*Math.PI); ctx.fill();}
+      const x=visualEarthX + Math.cos(shipAngle)*CFG.ORBIT_R;
+      const y=visualEarthY + Math.sin(shipAngle)*CFG.ORBIT_R;
+      ctx.save(); ctx.translate(x,y); ctx.rotate(shipAngle+Math.PI/2);
+      const img=(lives<=2 && shipDamLoaded)? shipDamImg : (shipLoaded? shipImg : null);
+      if(img){ ctx.globalCompositeOperation='lighter'; ctx.drawImage(img, -CFG.SHIP_SIZE/2, -CFG.SHIP_SIZE/2, CFG.SHIP_SIZE, CFG.SHIP_SIZE); ctx.globalCompositeOperation='source-over'; }
+      else{ ctx.fillStyle:'#22d3ee'; ctx.beginPath(); ctx.arc(0,0, CFG.SHIP_SIZE/3, 0, Math.PI*2); ctx.fill(); }
       ctx.restore();
     }
 
+    // ---------- enemies & projectiles (lightweight; preserves feel) ----------
     function spawnWave(){
-      gameState.temporaryUpgrades=[]; waitingForNextWave=false; currentWaveModifier=null;
-      if(isBossWave()){currentWaveModifier=waveModifiers.find(m=>m.bossWave);} else if(wave>1){const pool=waveModifiers.filter(m=>!m.bossWave); currentWaveModifier=pool[Math.floor(Math.random()*pool.length)];}
-      if(currentWaveModifier){showWaveModifier(currentWaveModifier); if(currentWaveModifier.bossWave && audioManager) audioManager.playMusic('boss',1000);}
-      else if(audioManager && gameRunning){audioManager.playMusic('gameplay',1000);}
+      // music
+      if(isBossWave()) audio.playMusic('boss', 800);
+      else audio.playMusic('gameplay', 800);
 
-      const enemyTypes=[
-        {name:"scout",health:1,speed:1.2,coins:10,sprites:["assets/IMG_1512.jpg","assets/IMG_1514.jpg"]},
-        {name:"fighter",health:2,speed:.8,coins:15,sprites:["assets/IMG_1505.jpg","assets/IMG_1506.jpg"]},
-        {name:"tank",health:4,speed:.5,coins:25,sprites:["assets/IMG_1508.jpg","assets/IMG_1515.jpg","assets/IMG_1517.jpg"]}
-      ];
-      const bossDataPool=[{path:"assets/IMG_1510.jpg",rotationOffset:Math.PI},{path:"assets/IMG_1511.jpg",rotationOffset:Math.PI},{path:"assets/IMG_1513.jpg",rotationOffset:Math.PI/2}];
-
-      const diffMult=CONFIG.DIFFICULTY[difficulty];
-      let composition=[], enemyCount=Math.round((5+(wave-1)*2)*diffMult.enemyCount);
-      if(currentWaveModifier && currentWaveModifier.bossWave){
-        const pick=bossDataPool[Math.floor(Math.random()*bossDataPool.length)];
-        const bossData={name:'boss',health:(100+wave*15)*diffMult.enemyHealth,speed:.3*diffMult.enemySpeed,coins:200,spritePath:pick.path,rotationOffset:pick.rotationOffset,canShoot:true,shootRate:2500};
-        composition.push(bossData); enemyCount=0;
-      }
-      enemyCount *= currentWaveModifier && currentWaveModifier.enemyMultiplier ? currentWaveModifier.enemyMultiplier : 1;
-      for(let i=0;i<enemyCount;i++){composition.push(enemyTypes[Math.floor(Math.random()*enemyTypes.length)]);}
-
-      composition.forEach((type)=>{
-        const health=(type.health+(wave-1)*.2)* (currentWaveModifier && currentWaveModifier.healthMultiplier ? currentWaveModifier.healthMultiplier : 1) * diffMult.enemyHealth;
-        const speed=type.speed*(currentWaveModifier && currentWaveModifier.speedMultiplier ? currentWaveModifier.speedMultiplier : 1)*diffMult.enemySpeed;
-        const spawnAngle=Math.random()*Math.PI*2;
-        const earthX=visualEarthX||canvas.width/2, earthY=visualEarthY||canvas.height/2;
-        const spawnDistance=Math.max(canvas.width,canvas.height)*.75;
-        const startX=earthX+Math.cos(spawnAngle)*spawnDistance, startY=earthY+Math.sin(spawnAngle)*spawnDistance;
-        const angleToEarth=Math.atan2(earthY-startY,earthX-startX);
-        const vx=Math.cos(angleToEarth)*speed, vy=Math.sin(angleToEarth)*speed;
-        const behaviors=['straight','arc','strafe','zigzag'];
-        const spritePath=type.spritePath || type.sprites[Math.floor(Math.random()*type.sprites.length)];
-        enemies.push({...type,health,speed,spritePath,x:startX,y:startY,vx,vy,maxHealth:health,flashTimer:0,behavior:behaviors[Math.floor(Math.random()*behaviors.length)],behaviorTimer:Math.random()*10,shootTimer:type.canShoot?0:null,rotation:angleToEarth+Math.PI/2});
-      });
-    }
-
-    function showWaveModifier(mod){const banner=document.createElement('div'); banner.className='wave-modifier-banner'; banner.innerHTML=`<div class="wave-modifier-title" style="color:${mod.color}">${mod.name}</div><div class="wave-modifier-desc">${mod.desc}</div>`; document.body.appendChild(banner); setTimeout(()=>{banner.style.opacity='0'; setTimeout(()=>banner.remove(),500);},3000);}
-
-    function showWaveChoiceScreen(){
-      gameRunning=false; showingWaveChoice=true;
-      document.getElementById('waveChoice').style.display='flex';
-      const choiceCards=document.getElementById('choiceCards'); if(!choiceCards) return;
-      choiceCards.innerHTML='';
-      generateUpgradeChoices(3).forEach((choice)=>{
-        const card=document.createElement('div'); card.className='choice-card';
-        card.innerHTML=`<div class="choice-card-name">${choice.name}</div><div class="choice-card-desc">${choice.desc}</div><div class="choice-card-effect">${choice.effect}</div>`;
-        card.onclick=()=>selectWaveChoice(choice); choiceCards.appendChild(card);
-      });
-    }
-
-    function generateUpgradeChoices(count){
-      const choices=[
-        {name:"Fire Rate Boost",desc:"Fire 20% faster for this wave",effect:"+20% Fire Rate",type:"fireRate",value:.8},
-        {name:"Damage Boost",desc:"Deal 50% more damage",effect:"+50% Damage",type:"damage",value:1.5},
-        {name:"Shield Heal",desc:"Restore 50 shield health",effect:"+50 Shield HP",type:"shieldHeal",value:50},
-        {name:"Life Recovery",desc:"Gain 1 extra life",effect:"+1 Life",type:"life",value:1},
-        {name:"Coin Multiplier",desc:"Earn 2x coins this wave",effect:"2x Coins",type:"coinMult",value:2},
-        {name:"Missile Rain",desc:"Gain 3 extra missiles",effect:"+3 Missiles",type:"missiles",value:3},
-        {name:"Speed Boost",desc:"Move 30% faster",effect:"+30% Speed",type:"speed",value:1.3},
-        {name:"Piercing Shots",desc:"Bullets pierce enemies",effect:"Piercing",type:"piercing",value:true},
-        {name:"Shield Regen",desc:"Shield regenerates faster",effect:"+2 HP/sec",type:"shieldRegen",value:2}
-      ];
-      return choices.sort(()=>.5-Math.random()).slice(0,count);
-    }
-
-    function selectWaveChoice(choice){
-      if(audioManager) audioManager.playSFX('upgrade');
-      gameState.temporaryUpgrades.push(choice);
-      if(choice.type==='shieldHeal'){gameState.shieldHealth=Math.min(gameState.shieldHealth+choice.value,gameState.maxShieldHealth);}
-      else if(choice.type==='life'){lives=Math.min(lives+1,5);}
-      else if(choice.type==='missiles'){missiles+=choice.value; gameState.temporaryUpgrades.push({type:'tempMultiLock',value:3});}
-      updateUI();
-      document.getElementById('waveChoice').style.display='none';
-      showingWaveChoice=false;
-      document.getElementById('waveTransition').style.display='flex';
-    }
-
-    function resumeGame(){document.getElementById('waveTransition').style.display='none'; gameRunning=true; waitingForNextWave=false; spawnWave();}
-
-    function updateBeamEffects(dt){
-      beamEffects=beamEffects.filter(beam=>{
-        if(!beam) return false; beam.lifetime-=dt; const opacity=beam.lifetime/.3;
-        ctx.save(); ctx.globalAlpha=opacity; ctx.strokeStyle='#ff0000'; ctx.lineWidth=3; ctx.shadowColor='#ff0000'; ctx.shadowBlur=10; ctx.beginPath(); ctx.moveTo(beam.startX,beam.startY); ctx.lineTo(beam.endX,beam.endY); ctx.stroke(); ctx.restore();
-        return beam.lifetime>0;
-      });
-    }
-
-    function updatePlasmaWaves(dt){
-      plasmaWaves=plasmaWaves.filter(w=>{
-        if(!w) return false;
-        w.x+=w.vx*dt*60; w.y+=w.vy*dt*60; w.radius+=200*dt; w.lifetime-=dt;
-        const opacity=w.lifetime/1.0;
-        if(Math.random()<.8 && particles.length<CONFIG.MAX_PARTICLES){
-          for(let i=0;i<3;i++){
-            const ang=Math.random()*Math.PI*2, dist=Math.random()*w.radius, px=w.x+Math.cos(ang)*dist, py=w.y+Math.sin(ang)*dist;
-            const p=particlePool.get(px,py,Math.random()*2-1,Math.random()*2-1,'#00ff88',.5,3); particles.push(p);
-          }
-        }
-        ctx.save(); ctx.globalAlpha=opacity*.6;
-        const g=ctx.createRadialGradient(w.x,w.y,0,w.x,w.y,w.radius);
-        g.addColorStop(0,'#00ffff'); g.addColorStop(.3,'#00ff88'); g.addColorStop(.6,'#00ff00'); g.addColorStop(1,'transparent');
-        ctx.fillStyle=g; ctx.beginPath(); ctx.arc(w.x,w.y,w.radius,0,Math.PI*2); ctx.fill();
-        ctx.globalAlpha=opacity; ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.arc(w.x,w.y,w.radius*.2,0,Math.PI*2); ctx.fill();
-        ctx.strokeStyle='#00ffff'; ctx.lineWidth=2; ctx.globalAlpha=opacity*.8;
-        for(let i=0;i<6;i++){const angle=(Math.PI*2/6)*i + w.lifetime*5; ctx.beginPath(); ctx.moveTo(w.x,w.y); ctx.lineTo(w.x+Math.cos(angle)*w.radius, w.y+Math.sin(angle)*w.radius); ctx.stroke();}
-        ctx.restore();
-        enemies.forEach(enemy=>{
-          if(!enemy||!w.hitEnemies) return;
-          if(!w.hitEnemies.includes(enemy)){
-            const dist=Math.hypot(enemy.x-w.x,enemy.y-w.y), hitR=enemy.name==='boss'?BOSS_HIT_RADIUS:ENEMY_HIT_RADIUS;
-            if(dist<w.radius+hitR){
-              w.hitEnemies.push(enemy);
-              const mult=1+(w.radius/100), dmg=w.damage*mult; enemy.health-=dmg; shotsHit++;
-              if(audioManager) audioManager.playSFX('hit'); showDamageNumber(enemy.x,enemy.y,Math.floor(dmg)); createExplosion(enemy.x,enemy.y,10,'#00ff88',.5);
-              if(enemy.health<=0) handleEnemyDeath(enemy);
-            }
-          }
+      // simple spawn: wave*X basic enemies; boss every 5th
+      enemies.length=0;
+      if(isBossWave()){
+        const angle=Math.random()*Math.PI*2;
+        const dist=Math.max(canvas.width,canvas.height)*0.7;
+        enemies.push({
+          name:'boss', x:visualEarthX+Math.cos(angle)*dist, y:visualEarthY+Math.sin(angle)*dist,
+          speed:.6, health:120+wave*18, maxHealth:120+wave*18, coins:200
         });
-        return w.lifetime>0;
-      });
-    }
-
-    function updateProjectiles(dt){
-      projectiles=projectiles.filter(p=>{
-        if(!p) return false;
-        p.x+=p.vx*dt*60; p.y+=p.vy*dt*60; p.life-=dt; if(p.life<=0) {projectilePool.release(p); return false;}
-        const alpha=p.life/p.maxLife; ctx.globalAlpha=alpha;
-        if(p.weaponType==='spread'){ctx.fillStyle="#ffff00"; ctx.beginPath(); ctx.arc(p.x,p.y,2,0,2*Math.PI);}
-        else if(p.weaponType==='rapid'){ctx.fillStyle="#ff8800"; ctx.beginPath(); ctx.arc(p.x,p.y,2,0,2*Math.PI);}
-        else if(p.weaponType==='burst'){ctx.fillStyle="#ff00ff"; ctx.beginPath(); ctx.arc(p.x,p.y,4,0,2*Math.PI);}
-        else{ctx.fillStyle=p.color||"#22d3ee"; ctx.beginPath(); ctx.arc(p.x,p.y,3,0,2*Math.PI);}
-        ctx.fill(); ctx.globalAlpha=1; return true;
-      });
-    }
-
-    function updateMissiles(dt){
-      missileProjectiles=missileProjectiles.filter(m=>{
-        if(!m) return false;
-        if(m.target && enemies.find(e=>e===m.target)){const dx=m.target.x-m.x, dy=m.target.y-m.y, a=Math.atan2(dy,dx); m.vx=Math.cos(a)*8; m.vy=Math.sin(a)*8;} else {m.target=null;}
-        m.x+=m.vx*dt*60; m.y+=m.vy*dt*60; m.life-=dt;
-        ctx.fillStyle="#ef4444"; ctx.beginPath(); ctx.arc(m.x,m.y,5,0,2*Math.PI); ctx.fill();
-        if(particles.length<CONFIG.MAX_PARTICLES){const p=particlePool.get(m.x,m.y,0,0,"#f59e0b",.3,2); particles.push(p);}
-        return m.life>0;
-      });
-    }
-
-    function updateBossProjectiles(dt){
-      bossProjectiles=bossProjectiles.filter(bp=>{
-        if(!bp) return false;
-        bp.x+=bp.vx*dt*60; bp.y+=bp.vy*dt*60; bp.rotation+=dt*5;
-        ctx.save(); ctx.translate(bp.x,bp.y); ctx.rotate(bp.rotation);
-        const projImg=bossProjectileImg2.complete && bossProjectileImg2.naturalWidth? bossProjectileImg2 : (bossProjectileImg1.complete && bossProjectileImg1.naturalWidth? bossProjectileImg1 : null);
-        if(projImg){ctx.drawImage(projImg,-15,-15,30,30);} else {ctx.fillStyle='#ff0000'; ctx.fillRect(-10,-10,20,20);}
-        ctx.restore();
-        const d=Math.hypot(bp.x-visualEarthX,bp.y-visualEarthY);
-        if(d<EARTH_COLLISION_RADIUS){
-          if(gameState.shieldHealth>0){gameState.shieldHealth-=10; createExplosion(bp.x,bp.y,10,'#ff4444',.5); if(audioManager) audioManager.playSFX('warning');}
-          else{lives--; updateUI(); createExplosion(visualEarthX,visualEarthY,15,'#ff0000',1); if(audioManager) audioManager.playSFX('warning'); if(lives<=0) endGame();}
-          return false;
+      }else{
+        const count=6 + (wave-1)*2;
+        for(let i=0;i<count;i++){
+          const ang=Math.random()*Math.PI*2;
+          const dist=Math.max(canvas.width,canvas.height)*0.75;
+          enemies.push({
+            name:'enemy',
+            x:visualEarthX+Math.cos(ang)*dist, y:visualEarthY+Math.sin(ang)*dist,
+            speed:.9 + Math.random()*.6, health:2+Math.random()*2 + wave*.25, maxHealth:3+wave*.25, coins:10+Math.floor(Math.random()*8)
+          });
         }
-        return (bp.x>=-50 && bp.x<=canvas.width+50 && bp.y>=-50 && bp.y<=canvas.height+50);
-      });
-    }
-
-    function updateEnemies(dt){
-      const system=shopItems.systems.find(s=>s.id===gameState.equipment.system);
-      const slow=system && system.slowmo ? system.slowmo : 1;
-      enemies.forEach(enemy=>{
-        if(!enemy||typeof enemy.x!=='number'||typeof enemy.y!=='number') return;
-        try{
-          enemy.behaviorTimer+=dt; let speedFactor=.5*slow*(1+.01*(wave-1));
-          const angleToEarth=Math.atan2(visualEarthY-enemy.y,visualEarthX-enemy.x);
-          if(enemy.name==='boss'){
-            enemy.vx=Math.cos(angleToEarth)*enemy.speed; enemy.vy=Math.sin(angleToEarth)*enemy.speed;
-            if(enemy.shootTimer!==null && enemy.shootTimer!==undefined){
-              enemy.shootTimer+=dt*1000;
-              if(enemy.shootTimer>=enemy.shootRate){
-                enemy.shootTimer=0;
-                const angle=angleToEarth+(Math.random()-.5)*.5;
-                const bp=bossProjectilePool.get(enemy.x,enemy.y,Math.cos(angle)*2,Math.sin(angle)*2,1);
-                bossProjectiles.push(bp);
-                if(audioManager) audioManager.playSFX('shoot');
-              }
-            }
-          }else{
-            const baseVx=Math.cos(angleToEarth)*enemy.speed, baseVy=Math.sin(angleToEarth)*enemy.speed;
-            switch(enemy.behavior){
-              case 'arc':{const off=Math.sin(enemy.behaviorTimer*2)*.3; enemy.vx=baseVx+Math.cos(angleToEarth+Math.PI/2)*off; enemy.vy=baseVy+Math.sin(angleToEarth+Math.PI/2)*off;break;}
-              case 'strafe':{const off=Math.sin(enemy.behaviorTimer*4)*.5; enemy.vx=baseVx+Math.cos(angleToEarth+Math.PI/2)*off; enemy.vy=baseVy+Math.sin(angleToEarth+Math.PI/2)*off;break;}
-              case 'zigzag':{const off=Math.sin(enemy.behaviorTimer*8)*.6; enemy.vx=baseVx+Math.cos(angleToEarth+Math.PI/2)*off; enemy.vy=baseVy+Math.sin(angleToEarth+Math.PI/2)*off;break;}
-              default: enemy.vx=baseVx; enemy.vy=baseVy;
-            }
-          }
-          enemy.x+=enemy.vx*speedFactor*60*dt; enemy.y+=enemy.vy*speedFactor*60*dt;
-
-          if(enemy.flashTimer>0) enemy.flashTimer-=dt;
-          const enemyImage=enemyImages[enemy.spritePath]; const size=enemy.name==='boss'?160:50;
-          ctx.save(); ctx.translate(enemy.x,enemy.y);
-          const rot=Math.atan2(visualEarthY-enemy.y,visualEarthX-enemy.x), rotOff=enemy.rotationOffset || Math.PI/2;
-          ctx.rotate(rot+rotOff); ctx.globalCompositeOperation='lighter';
-          if(enemyImage && enemyImage.complete && enemyImage.naturalWidth!==0){ctx.drawImage(enemyImage,-size/2,-size/2,size,size);}
-          else{ctx.fillStyle=enemy.color||'#ef4444'; ctx.beginPath(); ctx.arc(0,0,size/2,0,2*Math.PI); ctx.fill();}
-          ctx.globalCompositeOperation='source-over'; ctx.restore();
-
-          if(enemy.health<enemy.maxHealth){
-            const barW=size*.8, barH=5, pct=Math.max(0,Math.min(1,enemy.health/enemy.maxHealth));
-            ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(enemy.x-barW/2, enemy.y-size/2-12, barW, barH);
-            ctx.fillStyle=pct>.3?'#10b981':'#ef4444'; ctx.fillRect(enemy.x-barW/2, enemy.y-size/2-12, barW*pct, barH);
-          }
-
-          const dist=Math.hypot(enemy.x-visualEarthX,enemy.y-visualEarthY);
-          if(dist<EARTH_COLLISION_RADIUS && gameState.shieldHealth>0){
-            const shield=shopItems.shields.find(s=>s.id===gameState.equipment.shield);
-            if(shield && shield.reflect && Math.random()<shield.reflect){
-              createExplosion(enemy.x,enemy.y,15,enemy.color,.8,enemy.name==='boss'); if(audioManager) audioManager.playSFX(enemy.name==='boss'?'bossExplode':'explosion');
-              deathStats.enemiesKilled++; coins+=enemy.coins; score+=2*enemy.coins; addCombo(); enemy.health=0;
-            }else{
-              gameState.shieldHealth-=enemy.health; if(shield && shield.absorb){coins+=Math.floor(2*enemy.health);}
-              createExplosion(enemy.x,enemy.y,12,enemy.color,.6,enemy.name==='boss'); if(audioManager) audioManager.playSFX('warning'); screenShake+=5; enemy.health=0;
-            }
-          }
-          if(dist<EARTH_IMPACT_RADIUS){
-            lives--; updateUI(); createExplosion(visualEarthX,visualEarthY,20,'#ef4444',1.2); if(audioManager) audioManager.playSFX('warning'); screenShake+=15;
-            comboCount=0; updateComboDisplay(); if(lives<=0) endGame(); enemy.health=0;
-          }
-        }catch(err){console.warn('Enemy update error:',err); enemy.health=0;}
-      });
-      enemies=enemies.filter(e=>e&&e.health>0);
-    }
-
-    function updateParticles(dt){
-      for(let i=particles.length-1;i>=0;i--){
-        const p=particles[i]; if(!p) continue;
-        p.x+=p.vx*dt*60; p.y+=p.vy*dt*60; p.vy+=.5; p.lifetime-=dt;
-        if(p.lifetime<=0){particlePool.release(p); particles.splice(i,1);}
-        else{const a=p.lifetime/p.maxLifetime; ctx.globalAlpha=a; ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,2*Math.PI); ctx.fill(); ctx.globalAlpha=1;}
       }
     }
 
-    function updateExplosions(dt){
-      explosions=explosions.filter(e=>{
-        if(!e) return false; let alpha=1 - e.size/e.maxSize; e.size+=150*dt;
-        ctx.globalAlpha=alpha; ctx.strokeStyle=e.color||"#f59e0b"; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(e.x,e.y,e.size,0,2*Math.PI); ctx.stroke();
-        ctx.strokeStyle=e.color||"#ef4444"; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(e.x,e.y,.7*e.size,0,2*Math.PI); ctx.stroke(); ctx.globalAlpha=1;
-        return e.size<e.maxSize;
-      });
-    }
+    function isBossWave(){ return wave>0 && wave%5===0; }
 
     function autoFire(dt){
-      const weapon=shopItems.weapons.find(w=>w.id===gameState.equipment.weapon); if(!weapon) return;
-      let fireRate=weapon.fireRate; const frUp=gameState.temporaryUpgrades.find(u=>u.type==='fireRate'); if(frUp) fireRate*=frUp.value;
-      if(weapon.burst && burstCounter>0){autoFireTimer+=dt*1000; if(autoFireTimer>=100){autoFireTimer=0; burstCounter--; fireWeapon(weapon);} return;}
-      autoFireTimer+=dt*1000; if(autoFireTimer>=fireRate){autoFireTimer=0; if(weapon.burst) burstCounter=weapon.burst-1; fireWeapon(weapon);}
+      const weaponId=gameState.equipment.weapon||'basic';
+      const weapon=shopItems.weapons.find(w=>w.id===weaponId) || shopItems.weapons[0];
+      autoFire.t = (autoFire.t||0) + dt*1000;
+      const rate=weapon.fireRate||400;
+      if(autoFire.t>=rate){ autoFire.t=0; fire(weapon); }
     }
-
-    function fireWeapon(weapon){
-      shotsFired++; if(audioManager) audioManager.playSFX('shoot');
-      let dmg=weapon.damage; const dmgUp=gameState.temporaryUpgrades.find(u=>u.type==='damage'); if(dmgUp) dmg*=dmgUp.value;
-      const piercing=weapon.piercing || gameState.temporaryUpgrades.some(u=>u.type==='piercing');
-      if(weapon.beam){
-        const len=2000, ex=shipX+Math.cos(shipAngle)*len, ey=shipY+Math.sin(shipAngle)*len;
-        beamEffects.push({startX:shipX,startY:shipY,endX:ex,endY:ey,lifetime:.3});
-        enemies.forEach(enemy=>{
-          if(!enemy) return;
-          const d=pointToLineDistance(enemy.x,enemy.y,shipX,shipY,ex,ey), hitR=enemy.name==='boss'?BOSS_HIT_RADIUS:ENEMY_HIT_RADIUS;
-          if(d<hitR){enemy.health-=dmg; shotsHit++; if(audioManager) audioManager.playSFX(enemy.name==='boss'?'bossHit':'hit'); showDamageNumber(enemy.x,enemy.y,dmg); if(enemy.health<=0) handleEnemyDeath(enemy);}
-        });
-      }else if(weapon.wave){
-        plasmaWaves.push({x:shipX,y:shipY,vx:Math.cos(shipAngle)*5,vy:Math.sin(shipAngle)*5,radius:30,lifetime:1,damage:dmg,hitEnemies:[]});
-      }else if(weapon.pattern==='spread'){
+    function fire(weapon){
+      shotsFired++;
+      audio.sfx('shoot');
+      const speed=weapon.rapid?15:10;
+      if(weapon.pattern==='spread'){
         for(let i=-2;i<=2;i++){
-          const a=shipAngle+i*0.15;
-          const pr=projectilePool.get(shipX,shipY,Math.cos(a)*12,Math.sin(a)*12,dmg,piercing,'spread');
-          projectiles.push(pr);
+          const a=shipAngle + i*0.15;
+          projectiles.push({x:visualEarthX+Math.cos(shipAngle)*CFG.ORBIT_R, y:visualEarthY+Math.sin(shipAngle)*CFG.ORBIT_R, vx:Math.cos(a)*speed, vy:Math.sin(a)*speed, d:weapon.damage||1, pierce:!!weapon.piercing, life:2});
         }
       }else{
-        const speed=weapon.rapid?15:10;
-        const pr=projectilePool.get(shipX,shipY,Math.cos(shipAngle)*speed,Math.sin(shipAngle)*speed,dmg,piercing,weapon.id);
-        projectiles.push(pr);
+        projectiles.push({x:visualEarthX+Math.cos(shipAngle)*CFG.ORBIT_R, y:visualEarthY+Math.sin(shipAngle)*CFG.ORBIT_R, vx:Math.cos(shipAngle)*speed, vy:Math.sin(shipAngle)*speed, d:weapon.damage||1, pierce:!!weapon.piercing, life:2});
       }
-    }
-
-    function pointToLineDistance(px,py,x1,y1,x2,y2){
-      const A=px-x1,B=py-y1,C=x2-x1,D=y2-y1, dot=A*C+B*D, len=C*C+D*D; let t=-1; if(len!==0) t=dot/len;
-      let xx,yy; if(t<0){xx=x1;yy=y1;} else if(t>1){xx=x2;yy=y2;} else {xx=x1+t*C; yy=y1+t*D;}
-      const dx=px-xx, dy=py-yy; return Math.sqrt(dx*dx+dy*dy);
-    }
-
-    function handleEnemyDeath(enemy){
-      if(!enemy) return;
-      if(audioManager){audioManager.playSFX(enemy.name==='boss'?'bossExplode':'explosion'); if(enemy.name==='boss') audioManager.duckMusic(.5,.3);}
-      deathStats.enemiesKilled++;
-      const coinUp=gameState.temporaryUpgrades.find(u=>u.type==='coinMult'); let earned=enemy.coins*(coinUp?coinUp.value:1);
-      coins+=earned; score+=earned*2; addCombo();
-      createExplosion(enemy.x,enemy.y,enemy.name==='boss'?40:20,enemy.color||'#fff',enemy.name==='boss'?2:1.2,enemy.name==='boss');
-      if(enemy.name==='boss'){explosions.push({x:enemy.x,y:enemy.y,size:0,maxSize:120,color:enemy.color||'#fff'});}
     }
 
     function launchMissile(){
-      if(missiles<=0||!gameRunning) return;
-      if(audioManager){audioManager.playSFX('missile'); audioManager.duckMusic(.4,.5);}
-      missiles--; updateUI();
-      const system=shopItems.systems.find(s=>s.id===gameState.equipment.system);
-      const temp=gameState.temporaryUpgrades.find(u=>u.type==='tempMultiLock');
-      const multi=(temp && temp.value) || (system && system.multiTarget) || 1;
-      const targets=enemies.slice().sort((a,b)=>Math.hypot(a.x-shipX,a.y-shipY)-Math.hypot(b.x-shipX,b.y-shipY)).slice(0,multi);
-      targets.forEach(t=>{
-        if(!t) return;
-        const m=missilePool.get(shipX,shipY,Math.cos(shipAngle)*5,Math.sin(shipAngle)*5,t);
-        missileProjectiles.push(m);
+      if(!gameRunning || missiles<=0) return;
+      missiles--; updateUI(); audio.sfx('missile');
+      // target nearest
+      const sx=visualEarthX+Math.cos(shipAngle)*CFG.ORBIT_R;
+      const sy=visualEarthY+Math.sin(shipAngle)*CFG.ORBIT_R;
+      let target=null, best=1e9;
+      enemies.forEach(e=>{ const d=(e.x-sx)**2+(e.y-sy)**2; if(d<best){best=d; target=e;} });
+      missilesArr.push({x:sx,y:sy,vx:Math.cos(shipAngle)*6,vy:Math.sin(shipAngle)*6,target,life:5,damage:10});
+    }
+
+    function update(dt){
+      // ship angle smoothing
+      const diff=Math.atan2(Math.sin(targetAngle-shipAngle), Math.cos(targetAngle-shipAngle));
+      shipAngle += diff * 0.15;
+
+      // projectiles
+      for(let i=projectiles.length-1;i>=0;i--){
+        const p=projectiles[i]; p.x+=p.vx*dt*60; p.y+=p.vy*dt*60; p.life-=dt;
+        if(p.life<=0 || outOfBounds(p.x,p.y)){ projectiles.splice(i,1); continue; }
+      }
+
+      // missiles
+      for(let i=missilesArr.length-1;i>=0;i--){
+        const m=missilesArr[i];
+        if(m.target && enemies.includes(m.target)){
+          const a=Math.atan2(m.target.y-m.y, m.target.x-m.x);
+          m.vx=Math.cos(a)*8; m.vy=Math.sin(a)*8;
+        }
+        m.x+=m.vx*dt*60; m.y+=m.vy*dt*60; m.life-=dt;
+        if(m.life<=0 || outOfBounds(m.x,m.y)){ missilesArr.splice(i,1); continue; }
+      }
+
+      // boss shots
+      for(let i=bossShots.length-1;i>=0;i--){
+        const b=bossShots[i]; b.x+=b.vx*dt*60; b.y+=b.vy*dt*60; b.rot=(b.rot||0)+dt*5;
+        const de=Math.hypot(b.x-visualEarthX, b.y-visualEarthY);
+        if(de<CFG.EARTH_COLLIDE_R){
+          if(gameState.shieldHealth>0){ gameState.shieldHealth=Math.max(0, gameState.shieldHealth-10); audio.sfx('warning'); }
+          else{ lives--; audio.sfx('warning'); if(lives<=0){ endGame(); return; } }
+          bossShots.splice(i,1);
+        }else if(outOfBounds(b.x,b.y)){ bossShots.splice(i,1); }
+      }
+
+      // enemies
+      for(let i=enemies.length-1;i>=0;i--){
+        const e=enemies[i];
+        const a=Math.atan2(visualEarthY-e.y, visualEarthX-e.x);
+        const v= (e.name==='boss'? e.speed : e.speed) * 60;
+        e.x += Math.cos(a)*v*dt;
+        e.y += Math.sin(a)*v*dt;
+
+        // boss fires
+        if(e.name==='boss'){
+          e.t=(e.t||0)+dt*1000;
+          if(e.t>2200){ e.t=0;
+            const ang=a+(Math.random()-.5)*0.5;
+            bossShots.push({x:e.x,y:e.y,vx:Math.cos(ang)*2,vy:Math.sin(ang)*2,rot:0});
+            audio.sfx('shoot');
+          }
+        }
+
+        // hit Earth
+        const dE=Math.hypot(e.x-visualEarthX, e.y-visualEarthY);
+        if(dE<CFG.EARTH_IMPACT_R){
+          if(gameState.shieldHealth>0){
+            const dmg=Math.min(gameState.shieldHealth, e.health);
+            gameState.shieldHealth-=dmg;
+          }else{
+            lives--; if(lives<=0){ endGame(); return; }
+          }
+          enemies.splice(i,1);
+          continue;
+        }
+      }
+
+      // collisions: bullets vs enemies
+      bulletLoop:
+      for(let i=projectiles.length-1;i>=0;i--){
+        const p=projectiles[i];
+        for(let j=enemies.length-1;j>=0;j--){
+          const e=enemies[j];
+          const hr = (e.name==='boss'? CFG.BOSS_HIT_R : CFG.ENEMY_HIT_R);
+          if(Math.hypot(p.x-e.x, p.y-e.y) < hr){
+            shotsHit++; audio.sfx(e.name==='boss'?'bossHit':'hit');
+            e.health -= p.d;
+            if(e.health<=0){
+              score += e.coins*2; coins += e.coins; deathStats.enemiesKilled++; audio.sfx(e.name==='boss'?'explosion':'explosion');
+              enemies.splice(j,1);
+            }
+            if(!p.pierce){ projectiles.splice(i,1); }
+            continue bulletLoop;
+          }
+        }
+      }
+
+      // missiles vs enemies
+      missileLoop:
+      for(let i=missilesArr.length-1;i>=0;i--){
+        const m=missilesArr[i];
+        for(let j=enemies.length-1;j>=0;j--){
+          const e=enemies[j];
+          const hr=(e.name==='boss'? CFG.BOSS_HIT_R: CFG.ENEMY_HIT_R);
+          if(Math.hypot(m.x-e.x, m.y-e.y) < hr){
+            e.health -= m.damage; audio.sfx('explosion');
+            if(e.health<=0){ score += e.coins*2; coins += e.coins; deathStats.enemiesKilled++; enemies.splice(j,1); }
+            missilesArr.splice(i,1);
+            continue missileLoop;
+          }
+        }
+      }
+
+      // wave clear → choice/next
+      if(gameRunning && enemies.length===0 && !showingWaveChoice && !waitingNext){
+        waitingNext=true;
+        if(wave>=CFG.MAX_WAVES){ showVictoryScreen(); return; }
+        wave++; deathStats.waveReached=wave; coins+=wave*50; missiles=Math.min(10, missiles+1);
+        audio.sfx('wave'); updateUI(); save(); showWaveChoice();
+      }
+    }
+
+    function draw(){
+      drawBackground(); drawShield(); drawShip();
+
+      // projectiles
+      ctx.fillStyle='#22d3ee';
+      projectiles.forEach(p=>{ ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2); ctx.fill(); });
+
+      // missiles
+      ctx.fillStyle='#ef4444';
+      missilesArr.forEach(m=>{ ctx.beginPath(); ctx.arc(m.x,m.y,5,0,Math.PI*2); ctx.fill(); });
+
+      // boss shots (with image)
+      bossShots.forEach(b=>{
+        ctx.save(); ctx.translate(b.x,b.y); ctx.rotate(b.rot||0);
+        if(bossProjImg.complete && bossProjImg.naturalWidth){ ctx.drawImage(bossProjImg, -15, -15, 30, 30); }
+        else{ ctx.fillStyle='#f00'; ctx.fillRect(-10,-10,20,20); }
+        ctx.restore();
+      });
+
+      // enemies
+      enemies.forEach(e=>{
+        ctx.save(); ctx.translate(e.x,e.y);
+        const sz=(e.name==='boss')?160:50;
+        ctx.fillStyle= (e.name==='boss') ? '#ff4d4d' : '#f59e0b';
+        ctx.beginPath(); ctx.arc(0,0, sz/2, 0, Math.PI*2); ctx.fill();
+        // health bar
+        const pct=Math.max(0, Math.min(1, e.health/e.maxHealth));
+        const w=sz*0.8, h=6;
+        ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(-w/2, -sz/2-14, w, h);
+        ctx.fillStyle= pct>0.3? '#10b981' : '#ef4444'; ctx.fillRect(-w/2, -sz/2-14, w*pct, h);
+        ctx.restore();
       });
     }
 
-    function checkCollisions(){
-      enemyGrid.clear(); bossProjectileGrid.clear();
-      enemies.forEach(e=>e&&enemyGrid.insert(e));
-      bossProjectiles.forEach(bp=>bp&&bossProjectileGrid.insert(bp));
+    // ---------- screens / UI ----------
+    function showShop(){
+      if($('menu').style.display!=='none'||$('deathScreen').style.display!=='none') shopReturn='menu';
+      $('menu').style.display='none';
+      $('deathScreen').style.display='none';
+      $('shop').style.display='flex';
+      renderShop('weapons');
+    }
+    function closeShop(){
+      $('shop').style.display='none';
+      if(shopReturn==='in_game'){ $('waveTransition').style.display='flex'; } else { $('menu').style.display='block'; }
+    }
+    function showInGameShop(){ shopReturn='in_game'; $('waveTransition').style.display='none'; showShop(); }
+    function showTutorial(){ $('menu').style.display='none'; $('tutorial').style.display='flex'; }
+    function closeTutorial(){ $('tutorial').style.display='none'; $('menu').style.display='block'; }
 
-      const enemiesToRemove=[];
-      for(let i=projectiles.length-1;i>=0;i--){
-        const p=projectiles[i]; if(!p) continue;
-        const near=enemyGrid.getNearby(p.x,p.y,100);
-        for(let j=0;j<near.length;j++){
-          const e=near[j]; if(!e||e.health<=0) continue;
-          const hitR=e.name==='boss'?BOSS_HIT_RADIUS:ENEMY_HIT_RADIUS;
-          if(Math.hypot(p.x-e.x,p.y-e.y)<hitR){
-            shotsHit++; if(audioManager) audioManager.playSFX(e.name==='boss'?'bossHit':'hit');
-            triggerHitPause(e.name==='boss'?.1:.03, e.name==='boss'?.2:.5);
-            const finalDmg=Math.ceil(p.damage); e.health-=finalDmg; e.flashTimer=.1; showDamageNumber(e.x,e.y,finalDmg);
-            if(e.health<=0){handleEnemyDeath(e); enemiesToRemove.push(e);}
-            if(!p.piercing){projectiles.splice(i,1); projectilePool.release(p); break;}
-          }
+    function switchTab(tabName, ev){
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      if(ev && ev.currentTarget) ev.currentTarget.classList.add('active');
+      renderShop(tabName);
+    }
+    function renderShop(cat){
+      const box=$('shopItems'); if(!box) return; box.innerHTML='';
+      const key= cat==='weapons'?'weapon' : (cat==='shields'?'shield':'system');
+      (shopItems[cat]||[]).forEach(item=>{
+        const owned=(gameState.owned[cat]||[]).includes(item.id);
+        const equipped=gameState.equipment[key]===item.id;
+        const can=coins>=item.cost;
+        const card=document.createElement('div'); card.className='item-card'+(equipped?' equipped':'');
+        card.innerHTML=`
+          <img src="${item.sprite}" class="item-sprite" alt="${item.name}" onerror="this.style.display='none'">
+          <div class="item-name" style="color:var(--accent); font-weight:700">${item.name}</div>
+          <div class="item-desc" style="font-size:.8rem; color:var(--text-2)">${item.desc||''}</div>
+          <div class="item-price" style="font-family:var(--font-mono); color:var(--warn)">${item.cost>0?('💰 '+item.cost):'Free'}</div>
+          ${equipped?'<div class="item-equipped-badge" style="color:var(--good); font-size:.8rem; font-weight:700">Equipped</div>':''}
+        `;
+        if(!owned && item.cost>0){
+          const btn=document.createElement('button'); btn.className='button'; btn.textContent= can?'Buy':'Not enough coins';
+          btn.disabled=!can; btn.onclick=()=>buyItem(cat,item.id); card.appendChild(btn);
+        }else if(!equipped){
+          const btn=document.createElement('button'); btn.className='button'; btn.textContent='Equip';
+          btn.onclick=()=>equipItem(cat,item.id); card.appendChild(btn);
         }
+        box.appendChild(card);
+      });
+    }
+    function buyItem(cat,id){
+      const item=(shopItems[cat]||[]).find(i=>i.id===id); if(!item||coins<item.cost) return;
+      coins-=item.cost; (gameState.owned[cat]||(gameState.owned[cat]=[])).push(id); audio.sfx('upgrade'); updateUI(); save(); renderShop(cat);
+    }
+    function equipItem(cat,id){
+      const key=cat==='weapons'?'weapon':(cat==='shields'?'shield':'system');
+      gameState.equipment[key]=id;
+      if(cat==='shields'){
+        const sh=shopItems.shields.find(s=>s.id===id);
+        gameState.maxShieldHealth=sh?.health||0; gameState.shieldHealth=sh?.health||0;
       }
-      for(let i=projectiles.length-1;i>=0;i--){
-        const p=projectiles[i]; if(!p) continue;
-        const near=bossProjectileGrid.getNearby(p.x,p.y,50);
-        for(let j=0;j<near.length;j++){
-          const bp=near[j]; if(!bp) continue;
-          if(Math.hypot(p.x-bp.x,p.y-bp.y)<20){createExplosion(bp.x,bp.y,8,'#ff8800',.5); score+=5; const idx=bossProjectiles.indexOf(bp); if(idx>-1) bossProjectiles.splice(idx,1); if(!p.piercing){projectiles.splice(i,1); projectilePool.release(p); break;}}
-        }
-      }
-      for(let i=missileProjectiles.length-1;i>=0;i--){
-        const m=missileProjectiles[i]; if(!m) continue;
-        const near=enemyGrid.getNearby(m.x,m.y,100);
-        for(let j=0;j<near.length;j++){
-          const e=near[j]; if(!e||e.health<=0) continue;
-          const hitR=e.name==='boss'?BOSS_HIT_RADIUS:ENEMY_HIT_RADIUS;
-          if(Math.hypot(m.x-e.x,m.y-e.y)<hitR){
-            e.health-=m.damage; createExplosion(m.x,m.y,15,'#ef4444',.8,e.name==='boss'); if(e.health<=0){handleEnemyDeath(e); enemiesToRemove.push(e);}
-            missileProjectiles.splice(i,1); missilePool.release(m); break;
-          }
-        }
-      }
-      if(enemiesToRemove.length>0){enemies=enemies.filter(e=>!enemiesToRemove.includes(e));}
-      deathStats.accuracy=shotsFired>0?`${(shotsHit/shotsFired*100).toFixed(1)}%`:'0%';
+      save(); renderShop(cat);
+    }
+
+    function showWaveChoice(){
+      gameRunning=false; showingWaveChoice=true;
+      $('waveChoice').style.display='flex';
+      const list=$('choiceCards'); list.innerHTML='';
+      const choices=[
+        {name:'Fire Rate Boost', type:'fireRate', value:.8, effect:'+20% fire rate'},
+        {name:'Damage Boost', type:'damage', value:1.5, effect:'+50% damage'},
+        {name:'Missiles+', type:'missiles', value:3, effect:'+3 missiles'}
+      ];
+      choices.forEach(ch=>{
+        const card=document.createElement('div'); card.className='item-card';
+        card.innerHTML=`<div class="choice-card-name" style="color:var(--accent); font-weight:700">${ch.name}</div>
+                        <div class="choice-card-desc" style="color:var(--text-2)">Temporary bonus for the next wave.</div>
+                        <div class="choice-card-effect" style="color:var(--good); font-weight:700">${ch.effect}</div>`;
+        card.onclick=()=>selectWaveChoice(ch);
+        list.appendChild(card);
+      });
+    }
+    function selectWaveChoice(ch){
+      audio.sfx('upgrade');
+      if(ch.type==='missiles'){ missiles+=ch.value; }
+      else gameState.temporaryUpgrades.push(ch);
+      $('waveChoice').style.display='none'; showingWaveChoice=false; $('waveTransition').style.display='flex';
+    }
+    function resumeGame(){
+      $('waveTransition').style.display='none'; gameRunning=true; waitingNext=false; spawnWave();
+    }
+
+    // ---------- persistence ----------
+    function save(){
+      try{
+        localStorage.setItem('earthDefenderSave', JSON.stringify({coins, gameState}));
+      }catch{}
+    }
+    function load(){
+      try{
+        const d=JSON.parse(localStorage.getItem('earthDefenderSave')||'null');
+        if(d){ coins=d.coins??coins; if(d.gameState) Object.assign(gameState, d.gameState); }
+      }catch{}
+    }
+
+    // ---------- flow ----------
+    function startGame(level='normal'){
+      difficulty=level;
+      // menu -> HUD
+      $('menu').style.display='none';
+      const t=$('titleImage'); if(t) t.style.display='none';
+      $('hud').style.display='flex';
+      $('missileButton').style.display='flex';
+
+      // reset
+      gameRunning=true; paused=false;
+      wave=1; score=0; lives=3; missiles=3;
+      enemies.length=0; projectiles.length=0; missilesArr.length=0; bossShots.length=0;
+      shotsFired=0; shotsHit=0; deathStats.waveReached=1; deathStats.enemiesKilled=0; deathStats.coinsEarned=coins;
+
+      updateUI(); spawnWave();
+      audio.playMusic('gameplay', 800);
     }
 
     function endGame(){
-      if(audioManager){audioManager.stopMusic(500); setTimeout(()=>audioManager.playMusic('gameover',500),600);}
-      gameRunning=false; document.getElementById('hud').style.display='none'; document.getElementById('missileButton').style.display='none'; showDeathScreen();
+      audio.playMusic('gameover', 600);
+      gameRunning=false; $('hud').style.display='none'; $('missileButton').style.display='none';
+      showDeath();
     }
-
+    function showDeath(){
+      const stats=$('deathStats'), rec=$('deathRecommendation');
+      if(stats){
+        stats.innerHTML = `
+          <div class="death-stat-row"><span>Waves Survived</span><span>${deathStats.waveReached-1}</span></div>
+          <div class="death-stat-row"><span>Enemies Killed</span><span>${deathStats.enemiesKilled}</span></div>
+          <div class="death-stat-row"><span>Final Score</span><span>${score}</span></div>
+          <div class="death-stat-row"><span>Coins Earned</span><span>${coins - deathStats.coinsEarned}</span></div>
+          <div class="death-stat-row"><span>Accuracy</span><span>${shotsFired?((shotsHit/shotsFired*100).toFixed(1)+'%'):'0%'}</span></div>
+        `;
+      }
+      if(rec) rec.textContent = (deathStats.waveReached<5) ? 'Try upgrading your weapon or shield.' :
+                               (deathStats.waveReached<10)? 'Spread Shot or Rail Gun help mid-game.' :
+                               'Great run!';
+      $('deathScreen').style.display='flex'; save();
+    }
+    function closeDeathScreen(){
+      audio.playMusic('menu', 600);
+      $('deathScreen').style.display='none';
+      $('menu').style.display='block';
+      const t=$('titleImage'); if(t) t.style.display='block';
+    }
     function showVictoryScreen(){
-      if(audioManager){audioManager.stopMusic(500); setTimeout(()=>audioManager.playMusic('victory',500),600);}
-      gameRunning=false; document.getElementById('hud').style.display='none'; document.getElementById('missileButton').style.display='none'; document.getElementById('victoryScreen').style.display='flex'; saveGameState();
+      audio.playMusic('victory', 600);
+      gameRunning=false; $('hud').style.display='none'; $('missileButton').style.display='none';
+      $('victoryScreen').style.display='flex'; save();
     }
-    function closeVictoryScreen(){ if(audioManager) audioManager.playMusic('menu'); document.getElementById('victoryScreen').style.display='none'; document.getElementById('menu').style.display='block'; document.getElementById('titleImage').style.display='block';}
-
-    function showDeathScreen(){
-      const deathScreen=document.getElementById('deathScreen'), statsEl=document.getElementById('deathStats'), recEl=document.getElementById('deathRecommendation'); if(!deathScreen||!statsEl||!recEl) return;
-      deathStats.coinsEarned=coins-deathStats.coinsEarned;
-      const html=`
-        <div class="death-stat-row"><span class="death-stat-label">Waves Survived</span><span class="death-stat-value">${deathStats.waveReached-1}</span></div>
-        <div class="death-stat-row"><span class="death-stat-label">Enemies Killed</span><span class="death-stat-value">${deathStats.enemiesKilled}</span></div>
-        <div class="death-stat-row"><span class="death-stat-label">Final Score</span><span class="death-stat-value">${score}</span></div>
-        <div class="death-stat-row"><span class="death-stat-label">High Score</span><span class="death-stat-value">${highScore}</span></div>
-        <div class="death-stat-row"><span class="death-stat-label">Coins Earned</span><span class="death-stat-value">${deathStats.coinsEarned}</span></div>
-        <div class="death-stat-row"><span class="death-stat-label">Accuracy</span><span class="death-stat-value">${deathStats.accuracy}</span></div>`;
-      statsEl.innerHTML=html;
-      let rec=""; if(deathStats.waveReached<5) rec="Consider upgrading your weapon or shield in the shop.";
-      else if(deathStats.waveReached<10) rec="You're making progress! Try the Spread Shot or Rail Gun."; else rec="Impressive! You're a skilled defender.";
-      recEl.textContent=rec; deathScreen.style.display='flex'; saveGameState();
-    }
-    function closeDeathScreen(){ if(audioManager) audioManager.playMusic('menu'); document.getElementById('deathScreen').style.display='none'; document.getElementById('menu').style.display='block'; document.getElementById('titleImage').style.display='block';}
-
-    function updateUI(){
-      const waveEl=document.getElementById('waveDisplay'), scoreEl=document.getElementById('scoreDisplay'), livesEl=document.getElementById('livesDisplay'), coinsEl=document.getElementById('coinsDisplay'), missilesEl=document.getElementById('missilesDisplay'), shopBal=document.getElementById('shopBalance');
-      if(waveEl) waveEl.textContent=wave; if(scoreEl) scoreEl.textContent=score; if(livesEl) livesEl.textContent=lives; if(coinsEl) coinsEl.textContent=coins; if(missilesEl) missilesEl.textContent=missiles; if(shopBal) shopBal.textContent=coins;
+    function closeVictoryScreen(){
+      audio.playMusic('menu', 600);
+      $('victoryScreen').style.display='none';
+      $('menu').style.display='block';
+      const t=$('titleImage'); if(t) t.style.display='block';
     }
 
-    function showShop(){
-      if(document.getElementById('menu').style.display!=='none' || document.getElementById('deathScreen').style.display!=='none') shopReturnState='menu';
-      document.getElementById('menu').style.display='none'; document.getElementById('deathScreen').style.display='none'; document.getElementById('shop').style.display='flex'; renderShop('weapons');
-    }
-    function closeShop(){document.getElementById('shop').style.display='none'; if(shopReturnState==='in_game'){document.getElementById('waveTransition').style.display='flex';} else {document.getElementById('menu').style.display='block';}}
-    function showInGameShop(){shopReturnState='in_game'; document.getElementById('waveTransition').style.display='none'; showShop();}
-    function showTutorial(){document.getElementById('menu').style.display='none'; document.getElementById('tutorial').style.display='flex';}
-    function closeTutorial(){document.getElementById('tutorial').style.display='none'; document.getElementById('menu').style.display='block';}
+    function outOfBounds(x,y){ return x<-150 || x>canvas.width+150 || y<-150 || y>canvas.height+150; }
 
-    /* switchTab fix: no reliance on global event in strict mode */
-    function switchTab(tabName, el){
-      document.querySelectorAll(".tab").forEach(tab=>tab.classList.remove("active"));
-      if(el) el.classList.add("active");
-      else{
-        const btn=document.querySelector(`.tab[onclick*="${tabName}"]`);
-        btn&&btn.classList.add('active');
-      }
-      renderShop(tabName);
+    // ---------- loop ----------
+    function loop(now){
+      requestAnimationFrame(loop);
+      if(paused){ drawBackground(); drawShield(); drawShip(); return; }
+      const dt=Math.min((now-lastT)/1000, 0.017); lastT=now;
+      if(gameRunning){ update(dt); autoFire(dt); }
+      draw();
     }
 
-    function renderShop(category){
-      const shopItemsEl=document.getElementById('shopItems'); if(!shopItemsEl) return;
-      shopItemsEl.innerHTML='';
-      const key=category==='weapons'?'weapon':(category==='shields'?'shield':'system');
-      const items=shopItems[category]; if(!items) return;
-      items.forEach(item=>{
-        const owned=gameState.owned[category].includes(item.id);
-        const equipped=gameState.equipment[key]===item.id;
-        const canAfford=coins>=item.cost;
-        const card=document.createElement('div'); card.className=`item-card ${equipped?'equipped':''}`;
-        card.innerHTML=`
-          <img src="${item.sprite}" class="item-sprite" alt="${item.name}" onerror="this.style.display='none'">
-          <div class="item-name">${item.name}</div>
-          <div class="item-desc">${item.desc}</div>
-          <div class="item-price">${item.cost>0?`💰 ${item.cost}`:'Free'}</div>
-          ${equipped?'<div class="item-equipped-badge">Equipped</div>':''}`;
-        if(!owned && item.cost>0){
-          const btn=document.createElement('button'); btn.className='button'; btn.textContent=canAfford?'Buy':'Not enough coins'; btn.disabled=!canAfford; btn.onclick=()=>buyItem(category,item.id); card.appendChild(btn);
-        }else if(!equipped){
-          const btn=document.createElement('button'); btn.className='button'; btn.textContent='Equip'; btn.onclick=()=>equipItem(category,item.id); card.appendChild(btn);
-        }
-        shopItemsEl.appendChild(card);
-      });
-    }
+    // init
+    load();
+    updateUI();
+    audio.playMusic('menu', 800); // will be silent until first gesture in many browsers; we also kick below
+    requestAnimationFrame(loop);
 
-    function buyItem(cat,id){const item=shopItems[cat].find(i=>i.id===id); if(!item||coins<item.cost) return; coins-=item.cost; audioManager&&audioManager.playSFX('powerup'); gameState.owned[cat].push(id); updateUI(); saveGameState(); renderShop(cat);}
-    function equipItem(cat,id){
-      const key=cat==='weapons'?'weapon':(cat==='shields'?'shield':'system'); gameState.equipment[key]=id;
-      if(cat==='shields'){const shield=shopItems.shields.find(s=>s.id===id); if(shield){gameState.maxShieldHealth=shield.health||0; gameState.shieldHealth=shield.health||0;}}
-      saveGameState(); renderShop(cat);
-    }
+    // gesture to unlock audio & ensure menu music
+    const firstGesture=()=>{ audio.kick(); window.removeEventListener('pointerdown', firstGesture); window.removeEventListener('keydown', firstGesture); };
+    window.addEventListener('pointerdown', firstGesture, {once:true});
+    window.addEventListener('keydown', firstGesture, {once:true});
 
-    function createExplosion(x,y,count,color,intensity=1,isBoss=false){
-      const flame=['#ff6b00','#ff8c00','#ffa500','#ffb347','#ff4500','#dc143c'];
-      const baseCount=Math.floor(count*CONFIG.PARTICLE_MULTIPLIER), particleCount=isBoss?baseCount*3:baseCount, maxP=CONFIG.MAX_PARTICLES;
-      for(let i=0;i<particleCount && particles.length<maxP;i++){
-        const ang=2*Math.PI/particleCount*i + (Math.random()-.5)*.5, speed=(3+4*Math.random())*intensity*(isBoss?1.5:1), c=flame[Math.floor(Math.random()*flame.length)];
-        const p=particlePool.get(x,y,Math.cos(ang)*speed,Math.sin(ang)*speed,c,.8+.7*Math.random(),isBoss?2:1); particles.push(p);
-      }
-      screenShake=Math.min(screenShake + count*.8*intensity*(isBoss?2:1),20);
-      if(isBoss){vibrate(100); setTimeout(()=>vibrate(50),100); setTimeout(()=>vibrate(150),200);} else {vibrate(Math.min(50*intensity,100));}
-    }
-    function vibrate(d){if('vibrate' in navigator){navigator.vibrate(d);}}
-
-    init();
+    // public API
     return {
-      kickAudio: () => { try{ audioManager?.toggleMute?.(); audioManager?.toggleMute?.(); }catch{} audioManager?.playMusic?.('menu',600); },
-      startGame, showShop, closeShop, switchTab, launchMissile,
-      closeDeathScreen, closeVictoryScreen, resumeGame, showInGameShop,
-      showTutorial, closeTutorial, setDifficulty
+      // audio
+      kickAudio: ()=>audio.kick(),
+
+      // game
+      startGame, resumeGame, launchMissile,
+      // screens
+      showShop, closeShop, showInGameShop,
+      showTutorial, closeTutorial,
+      closeDeathScreen, closeVictoryScreen,
+      // shop
+      switchTab,
+      // settings
+      setDifficulty:(d)=>{difficulty=d;}
     };
   }
-  </script>
 
-  <!-- single init/wiring block (no duplicate init calls) -->
-  <script>
-    window.addEventListener('load', () => {
-      try { window.Game = initializeGame(); } catch (e) { console.error('init error:', e); }
+  // -------------------- Boot --------------------
+  window.addEventListener('DOMContentLoaded', ()=>{
+    try{
+      window.Game = initializeGame();
+    }catch(e){
+      console.error('Init error:', e);
+    }
 
-      // wire common start buttons, if present
-      function wireStartButtons(){
-        const selectors=['#startBtn','#playButton','#menuStart','#beginBtn','#start','#play','.start','.play'];
-        const act=()=>{ window.Game?.startGame?.('normal'); window.Game?.kickAudio?.(); const o=document.getElementById('tapToStart'); if(o) o.style.display='none'; };
-        selectors.forEach(sel=>document.querySelectorAll(sel).forEach(btn=>btn.addEventListener('click',act)));
-      }
-      wireStartButtons();
+    // wire extra common selectors safely (if present)
+    const tryStart=()=>{ window.Game?.startGame?.('normal'); window.Game?.kickAudio?.(); };
+    ['#startBtn','#playButton','#menuStart','#beginBtn','#start','#play','.start','.play']
+      .forEach(sel=> document.querySelectorAll(sel).forEach(b=> b.addEventListener('click', tryStart)));
 
-      // user gesture kick to satisfy autoplay policies
-      const gestureKick=()=>{ window.Game?.kickAudio?.(); };
-      window.addEventListener('pointerdown', gestureKick, { once:true });
-      window.addEventListener('keydown',      gestureKick, { once:true });
-    });
+    // always allow a gesture to kick audio
+    const kick=()=> window.Game?.kickAudio?.();
+    window.addEventListener('pointerdown', kick, {once:true});
+    window.addEventListener('keydown', kick, {once:true});
+  });
   </script>
 </body>
 </html>
