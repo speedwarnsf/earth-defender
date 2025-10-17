@@ -760,14 +760,6 @@
     </div>
 
     <canvas id="gameCanvas"></canvas>
-
-  <!-- Start overlay (added, non-destructive) -->
-  <div id="tapToStart" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;gap:12px;background:rgba(0,0,0,.45);z-index:9999;">
-    <button id="startBtn" style="padding:14px 22px;border:0;border-radius:12px;background:#11b369;color:#fff;font:700 16px system-ui;box-shadow:0 6px 18px rgba(0,0,0,.25);cursor:pointer;">
-      Tap to Start
-    </button>
-  </div>
-
     
     <div id="fpsCounter" style="position: absolute; top: 10px; right: 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #0f0; background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 4px; z-index: 1000; display: none;">FPS: 60</div>
     
@@ -897,97 +889,396 @@
         const STUCK_TIMER_THRESHOLD = 3;
         
         class AudioManager {
-  constructor() {
-    this.sounds = {
-      menu:    { src: 'audio/menu.m4a',  loop: true,  volume: 0.6 },
-      level1:  { src: 'audio/level1.m4a', loop: true, volume: 0.5 },
-      level2:  { src: 'audio/level2.m4a', loop: true, volume: 0.5 },
-      level3:  { src: 'audio/level3.m4a', loop: true, volume: 0.5 },
-      boss1:   { src: 'audio/boss1.mp3',  loop: true, volume: 0.5 },
-      boss2:   { src: 'audio/boss2.m4a',  loop: true, volume: 0.5 },
-      boss20:  { src: 'audio/boss20.m4a', loop: true, volume: 0.5 },
-      victory: { src: 'audio/victory.m4a', loop:false, volume: 0.7 },
-      gameover:{ src: 'audio/gameover.mp3',loop:false, volume: 0.7 },
-      shoot:   { src: 'audio/shoot.mp3',  loop:false, volume: 0.3 },
-      hit:     { src: 'audio/hit.mp3',    loop:false, volume: 0.4 },
-      explosion:{src: 'audio/explosion.mp3', loop:false, volume: 0.5 },
-      powerup: { src: 'audio/powerup.mp3',loop:false, volume: 0.6 },
-      missile: { src: 'audio/missile.mp3',loop:false, volume: 0.5 },
-      bossHit: { src: 'audio/bossHit.mp3',loop:false, volume: 0.6 },
-    };
-    // Build fallback candidates in case assets live under assets/audio/
-    for (const k in this.sounds) {
-      const s = this.sounds[k];
-      if (!s) continue;
-      const p = s.src;
-      s.srcCandidates = [p, p.replace(/^audio\//, 'assets/audio/')];
-    }
-    this.current = null;
-    this.musicVolume = 1;
-    this.sfxVolume = 1;
-    this.muted = false;
-  }
+            constructor() {
+                this.audioContext = null;
+                this.musicTracks = {};
+                this.currentMusic = null;
+                this.currentPlaylist = [];
+                this.currentTrackIndex = 0;
+                this.musicVolume = 0.4;
+                this.sfxVolume = 0.6;
+                this.muted = false;
+                this.baseMusicVolume = 0.4;
+                this.duckingActive = false;
+                this.targetVolume = 0.4;
+                
+                this.tracks = {
+                    menu: ['assets/audio/hippiedancers_-_6_9_24__2_26_PM.m4a'],
+                    gameplay: [
+                        'assets/audio/m33_-_4_26_25__11_13_AM.m4a',
+                        'assets/audio/MIAMI__mret_-_5_27_24__5_09_PM_.m4a',
+                        'assets/audio/goodroots - 1_17_25, 9.41 PM.m4a',
+                        'assets/audio/newleed - 9_28_24, 6.48 PM.m4a',
+                        'assets/audio/hippiedancers_-_6_9_24__2_26_PM.m4a'
+                    ],
+                    boss: [
+                        'assets/audio/monster.mp3',
+                        'assets/audio/dumplin_-_7_6_24__8_51_PM.m4a'
+                    ],
+                    victory: ['assets/audio/propane2 - 12_21_24, 10.27 AM.m4a'],
+                    gameover: ['assets/audio/gameover.mp3']
+                };
+                
+                this.init();
+            }
+            
+            duckMusic(duration = 0.3, amount = 0.5) {
+                if (!this.currentMusic || this.muted) return;
+                this.duckingActive = true;
+                const duckedVolume = this.baseMusicVolume * amount;
+                this.targetVolume = duckedVolume;
+                this.smoothTransition(this.currentMusic.volume, duckedVolume, 100);
+                setTimeout(() => {
+                    this.duckingActive = false;
+                    this.targetVolume = this.baseMusicVolume;
+                    this.smoothTransition(this.currentMusic.volume, this.baseMusicVolume, 200);
+                }, duration * 1000);
+            }
+            
+            smoothTransition(from, to, duration) {
+                if (!this.currentMusic) return;
+                const steps = 10;
+                const stepTime = duration / steps;
+                const volumeStep = (to - from) / steps;
+                let currentStep = 0;
+                const interval = setInterval(() => {
+                    if (!this.currentMusic || this.muted) {
+                        clearInterval(interval);
+                        return;
+                    }
+                    currentStep++;
+                    this.currentMusic.volume = from + (volumeStep * currentStep);
+                    if (currentStep >= steps) clearInterval(interval);
+                }, stepTime);
+            }
+            
+            async init() {
+                try {
+                    if (!window.AudioContext && !window.webkitAudioContext) {
+                        console.warn('Web Audio API not supported. Audio will be disabled.');
+                        return;
+                    }
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    for (const playlist of Object.values(this.tracks)) {
+                        for (const path of playlist) {
+                            if (!this.musicTracks[path]) {
+                                try {
+                                    const audio = new Audio(path);
+                                    audio.loop = false;
+                                    audio.volume = 0;
+                                    audio.preload = 'auto';
+                                    await new Promise((resolve, reject) => {
+                                        audio.oncanplaythrough = resolve;
+                                        audio.onerror = () => {
+                                            console.warn(`Failed to load audio: ${path}`);
+                                            resolve();
+                                        };
+                                        audio.load();
+                                        setTimeout(resolve, 5000);
+                                    });
+                                    this.musicTracks[path] = audio;
+                                } catch (err) {
+                                    console.warn(`Audio load error: ${err.message}`);
+                                }
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Audio initialization failed:', error);
+                    this.audioContext = null;
+                }
+            }
 
-  _make(tag) {
-    const s = this.sounds[tag];
-    if (!s) return null;
-    const el = new Audio();
-    el.loop = !!s.loop;
-    el.volume = this.muted ? 0 : (s.volume ?? 1) * this.musicVolume;
-    el.preload = 'auto';
-    const tryNext = (i) => {
-      if (!s.srcCandidates || i >= s.srcCandidates.length) return;
-      el.src = s.srcCandidates[i];
-      el.onerror = () => tryNext(i + 1);
-      el.load();
-    };
-    tryNext(0);
-    return el;
-  }
+            shufflePlaylist(playlist) {
+                for (let i = playlist.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [playlist[i], playlist[j]] = [playlist[j], playlist[i]];
+                }
+            }
 
-  playMusic(tag, fadeMs = 0) {
-    if (this.muted) return;
-    const next = this._make(tag);
-    if (!next) return;
-    if (this.current) {
-      this.stopMusic(fadeMs);
-    }
-    this.current = next;
-    const s = this.sounds[tag];
-    this.current.volume = this.muted ? 0 : (s && s.volume != null ? s.volume : 1) * this.musicVolume;
-    this.current.play().catch(()=>{});
-  }
+            playNextTrackInPlaylist() {
+                if (this.currentPlaylist.length <= 1 || this.muted) return;
+                this.currentTrackIndex = (this.currentTrackIndex + 1) % this.currentPlaylist.length;
+                if (this.currentTrackIndex === 0) this.shufflePlaylist(this.currentPlaylist);
+                const nextTrackPath = this.currentPlaylist[this.currentTrackIndex];
+                this.playTrack(nextTrackPath, 4000, true);
+            }
+            
+            playMusic(playlistName, fadeTime = 2000) {
+                if (this.muted || !this.tracks[playlistName] || this.tracks[playlistName].length === 0) return;
+                const newPlaylist = this.tracks[playlistName];
+                this.currentPlaylist = [...newPlaylist];
+                if(this.currentPlaylist.length > 1) this.shufflePlaylist(this.currentPlaylist);
+                this.currentTrackIndex = 0;
+                const trackPath = this.currentPlaylist[this.currentTrackIndex];
+                const isPlaylist = (playlistName === 'gameplay' || playlistName === 'menu') && this.currentPlaylist.length > 1;
+                this.playTrack(trackPath, fadeTime, isPlaylist);
+            }
 
-  stopMusic(fadeMs = 0) {
-    const cur = this.current;
-    if (!cur) return;
-    if (!fadeMs) { cur.pause(); this.current = null; return; }
-    const steps = 12, start = cur.volume, dec = start/steps, stepMs = fadeMs/steps;
-    let n = 0;
-    const i = setInterval(() => {
-      n++; cur.volume = Math.max(0, start - dec*n);
-      if (n >= steps) { clearInterval(i); cur.pause(); this.current = null; }
-    }, stepMs);
-  }
+            playTrack(trackPath, fadeTime, isPlaylist = false) {
+                if (this.muted || !this.musicTracks[trackPath]) return;
+                const newTrack = this.musicTracks[trackPath];
+                if (this.currentMusic === newTrack && !newTrack.paused) return;
+                
+                Object.values(this.musicTracks).forEach(track => {
+                    if (track && track !== newTrack) {
+                        track.pause();
+                        track.currentTime = 0;
+                        track.volume = 0;
+                        track.onended = null;
+                    }
+                });
+                
+                if (this.currentMusic) {
+                    this.currentMusic.onended = null;
+                    this.fadeOut(this.currentMusic, fadeTime);
+                }
+                this.currentMusic = newTrack;
+                newTrack.currentTime = 0;
+                newTrack.play().then(() => {
+                    this.fadeIn(newTrack, fadeTime, this.musicVolume);
+                }).catch(err => console.warn('Audio play failed:', err));
 
-  playRandomLevelTrack() {
-    const opts = ['level1','level2','level3'];
-    this.playMusic(opts[Math.floor(Math.random()*opts.length)], 300);
-  }
-
-  playSFX() { /* no-op in light version */ }
-
-  toggleMute() {
-    this.muted = !this.muted;
-    if (this.current) this.current.volume = this.muted ? 0 : this.current.volume || 1;
-    const btn = document.getElementById('muteBtn');
-    btn?.classList.toggle('muted', this.muted);
-  }
-
-  setMusicVolume(v){ this.musicVolume = Math.max(0,Math.min(1,v)); if (this.current && !this.muted) this.current.volume = this.musicVolume; }
-  setSFXVolume(v){ this.sfxVolume = Math.max(0,Math.min(1,v)); }
-  resumeContextIfSuspended(){ /* not needed in light impl */ }
-}
+                if (isPlaylist) {
+                    newTrack.loop = false;
+                    newTrack.onended = () => this.playNextTrackInPlaylist();
+                } else {
+                    newTrack.onended = null;
+                    newTrack.loop = true;
+                }
+            }
+            
+            fadeIn(audio, duration, targetVolume) {
+                if (!audio) return;
+                const steps = 50;
+                const stepTime = duration / steps;
+                audio.volume = 0;
+                const volumeIncrement = targetVolume / steps;
+                const interval = setInterval(() => {
+                    if (!audio || audio.volume >= targetVolume - volumeIncrement || this.muted) {
+                        if (audio) audio.volume = this.muted ? 0 : targetVolume;
+                        clearInterval(interval);
+                        return;
+                    }
+                    audio.volume += volumeIncrement;
+                }, stepTime);
+            }
+            
+            fadeOut(audio, duration) {
+                if (!audio) return;
+                const steps = 50;
+                const stepTime = duration / steps;
+                const startVolume = audio.volume;
+                if (startVolume === 0) {
+                    audio.pause();
+                    return;
+                }
+                const volumeDecrement = startVolume / steps;
+                const interval = setInterval(() => {
+                    if (!audio || audio.volume <= volumeDecrement) {
+                        if (audio) {
+                            audio.pause();
+                            audio.volume = 0;
+                        }
+                        clearInterval(interval);
+                        return;
+                    }
+                    audio.volume -= volumeDecrement;
+                }, stepTime);
+            }
+            
+            stopMusic(fadeTime = 1000) {
+                if (this.currentMusic) {
+                    this.currentMusic.onended = null;
+                    this.fadeOut(this.currentMusic, fadeTime);
+                }
+            }
+            
+            playSFX(type) {
+                if (this.muted || !this.audioContext) return;
+                if (['explosion', 'bossExplode', 'missile', 'bossHit'].includes(type)) {
+                    this.duckMusic(0.3, 0.5);
+                }
+                const ctx = this.audioContext;
+                const now = ctx.currentTime;
+                switch(type) {
+                    case 'shoot': this.playShootSound(ctx, now); break;
+                    case 'hit': this.playHitSound(ctx, now); break;
+                    case 'explosion': this.playExplosionSound(ctx, now); break;
+                    case 'missile': this.playMissileSound(ctx, now); break;
+                    case 'powerup': this.playPowerupSound(ctx, now); break;
+                    case 'upgrade': this.playUpgradeSound(ctx, now); break;
+                    case 'warning': this.playWarningSound(ctx, now); break;
+                    case 'waveComplete': this.playWaveCompleteSound(ctx, now); break;
+                    case 'bossHit': this.playBossHitSound(ctx, now); break;
+                    case 'bossExplode': this.playBossExplodeSound(ctx, now); break;
+                }
+            }
+            
+            playShootSound(ctx, now) {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.exponentialRampToValueAtTime(50, now + 0.1);
+                gain.gain.setValueAtTime(0.3 * this.sfxVolume, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            }
+            
+            playHitSound(ctx, now) {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(50, now + 0.05);
+                gain.gain.setValueAtTime(0.4 * this.sfxVolume, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            }
+            
+            playExplosionSound(ctx, now) {
+                const bufferSize = ctx.sampleRate * 0.5;
+                const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                let last = 0;
+                for (let i = 0; i < bufferSize; i++) {
+                    const white = Math.random() * 2 - 1;
+                    data[i] = (last + 0.02 * white) / 1.02;
+                    last = data[i];
+                    data[i] *= 3.5;
+                }
+                const source = ctx.createBufferSource();
+                const filter = ctx.createBiquadFilter();
+                const gain = ctx.createGain();
+                source.buffer = buffer;
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(800, now);
+                filter.frequency.exponentialRampToValueAtTime(50, now + 0.5);
+                source.connect(filter);
+                filter.connect(gain);
+                gain.connect(ctx.destination);
+                gain.gain.setValueAtTime(0.5 * this.sfxVolume, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                source.start(now);
+                source.stop(now + 0.5);
+            }
+            
+            playBossHitSound(ctx, now) {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'square';
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.setValueAtTime(100, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.2);
+                gain.gain.setValueAtTime(0.5 * this.sfxVolume, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            }
+            
+            playBossExplodeSound(ctx, now) {
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(() => this.playExplosionSound(ctx, ctx.currentTime), i * 100);
+                }
+            }
+            
+            playMissileSound(ctx, now) {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+                gain.gain.setValueAtTime(0.4 * this.sfxVolume, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+                setTimeout(() => this.playSFX('explosion'), 300);
+            }
+            
+            playPowerupSound(ctx, now) {
+                [262, 330, 392, 523].forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.frequency.setValueAtTime(freq, now + 0.08 * i);
+                    gain.gain.setValueAtTime(0.3 * this.sfxVolume, now + 0.08 * i);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08 * i + 0.2);
+                    osc.start(now + 0.08 * i);
+                    osc.stop(now + 0.08 * i + 0.2);
+                });
+            }
+            
+            playUpgradeSound(ctx, now) {
+                [440, 554, 659, 880].forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.frequency.setValueAtTime(freq, now + 0.1 * i);
+                    gain.gain.setValueAtTime(0.25 * this.sfxVolume, now + 0.1 * i);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1 * i + 0.3);
+                    osc.start(now + 0.1 * i);
+                    osc.stop(now + 0.1 * i + 0.3);
+                });
+            }
+            
+            playWarningSound(ctx, now) {
+                for (let i = 0; i < 3; i++) {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'square';
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    const freq = i % 2 === 0 ? 440 : 554;
+                    osc.frequency.setValueAtTime(freq, now + 0.2 * i);
+                    gain.gain.setValueAtTime(0.3 * this.sfxVolume, now + 0.2 * i);
+                    gain.gain.setValueAtTime(0, now + 0.2 * i + 0.15);
+                    osc.start(now + 0.2 * i);
+                    osc.stop(now + 0.2 * i + 0.15);
+                }
+            }
+            
+            playWaveCompleteSound(ctx, now) {
+                [523, 659, 784, 1047].forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.frequency.setValueAtTime(freq, now + 0.15 * i);
+                    gain.gain.setValueAtTime(0.3 * this.sfxVolume, now + 0.15 * i);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15 * i + 0.4);
+                    osc.start(now + 0.15 * i);
+                    osc.stop(now + 0.15 * i + 0.4);
+                });
+            }
+            
+            setMusicVolume(vol) {
+                this.musicVolume = Math.max(0, Math.min(1, vol));
+                if (this.currentMusic) this.currentMusic.volume = this.muted ? 0 : this.musicVolume;
+            }
+            
+            setSFXVolume(vol) {
+                this.sfxVolume = Math.max(0, Math.min(1, vol));
+            }
+            
+            toggleMute() {
+                this.muted = !this.muted;
+                const btn = document.getElementById('muteBtn');
+                btn.classList.toggle('muted', this.muted);
+                if (this.currentMusic) this.currentMusic.volume = this.muted ? 0 : this.musicVolume;
+            }
+        }
         
         let audioManager;
         
@@ -3074,7 +3365,7 @@
             init();
             
             return {
-                kickAudio, startGame,
+                startGame,
                 showShop,
                 closeShop,
                 switchTab,
@@ -3093,44 +3384,6 @@
             Game = initializeGame();
         });
     </script>
-
-
-
-<script>
-  // Non-destructive event wiring: binds common start buttons if present.
-  function wireStartButtons() {
-    const tryBind = (sel) => {
-      document.querySelectorAll(sel).forEach(el => {
-        el.addEventListener('click', (e) => {
-          try { e.preventDefault(); } catch(_) {}
-          window.Game?.startGame?.();
-          window.Game?.kickAudio?.();
-          const overlay = document.getElementById('tapToStart');
-          if (overlay) overlay.style.display = 'none';
-        }, { once:false });
-      });
-    };
-    // Common IDs/classes your code has used across versions
-    ['#startBtn','#playButton','#menuStart','#beginBtn','#start','#play','.start','.play'].forEach(tryBind);
-  }
-
-  // Replace prior boot with a guarded version that prioritizes user gesture and overlay.
-  (function boot() {
-    const bootOnce = () => {
-      window.Game?.startGame?.();
-      window.Game?.kickAudio?.();
-      const overlay = document.getElementById('tapToStart');
-      if (overlay) overlay.style.display = 'none';
-    };
-    window.addEventListener('load', () => {
-      wireStartButtons();
-      // Fallback: also accept first pointer/key as start
-      window.addEventListener('pointerdown', bootOnce, { once:true });
-      window.addEventListener('keydown', bootOnce, { once:true });
-      // Do not auto-start here; we want the overlay click to trigger audio reliably.
-    });
-  })();
-</script>
 
 </body>
 </html>
