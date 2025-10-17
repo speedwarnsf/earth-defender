@@ -3365,7 +3365,7 @@
             init();
             
             return {
-                startGame,
+                kickAudio, startGame,
                 showShop,
                 closeShop,
                 switchTab,
@@ -3386,21 +3386,20 @@
     </script>
 
 <script>
+  // Create global Game and wire Start + audio on the same gesture
   window.addEventListener('load', () => {
-    try { window.Game = initializeGame(); } catch (e) { console.error('Initialize error:', e); }
-    // Wire common start buttons to start + audio kick
+    try { window.Game = initializeGame(); } catch (e) { console.error('init error:', e); }
     function wireStartButtons() {
       const selectors = ['#startBtn','#playButton','#menuStart','#beginBtn','#start','#play','.start','.play'];
       const act = () => {
-        window.Game?.startGame?.('normal');
-        window.Game?.kickAudio?.();
-        const o = document.getElementById('tapToStart');
-        if (o) o.style.display = 'none';
+        window.Game?.startGame?.();      // no args; preserves balance
+        window.Game?.kickAudio?.();      // audio unlock same tap
+        const o = document.getElementById('tapToStart'); if (o) o.style.display = 'none';
       };
       selectors.forEach(sel => document.querySelectorAll(sel).forEach(btn => btn.addEventListener('click', act)));
     }
     wireStartButtons();
-    const gestureKick = () => { wireStartButtons(); window.Game?.kickAudio?.(); };
+    const gestureKick = () => { window.Game?.kickAudio?.(); };
     window.addEventListener('pointerdown', gestureKick, { once:true });
     window.addEventListener('keydown',      gestureKick, { once:true });
   });
